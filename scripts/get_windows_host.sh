@@ -1,0 +1,1 @@
+echo "WINDOWS_HOST=$(ipconfig.exe | grep 'vEthernet (WSL)' -A4 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')" > ./.devcontainer/env
