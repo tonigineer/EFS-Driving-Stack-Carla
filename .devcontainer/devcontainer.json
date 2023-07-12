@@ -1,0 +1,59 @@
+// See https://aka.ms/vscode-remote/devcontainer.json for format details.
+//{BLUEPRINT_X} will be replaced by setup script 
+{
+    "dockerFile": "Dockerfile",
+    "initializeCommand": "scripts/get_windows_host.sh",
+    "build": {
+        "args": {
+            "WORKSPACE": "${containerWorkspaceFolder}",
+            "SET_PROXY": "${localEnv:WSL_DISTRO_NAME}",
+            "PROXY": "${localEnv:http_proxy}",
+            "PROXY_UPPERCASE": "${localEnv:HTTP_PROXY}"
+        }
+    },
+    "remoteUser": "ros",
+    "runArgs": [
+        "--privileged",
+        "--network=host",
+        "--env-file","./.devcontainer/env",
+        //"--cap-add=SYS_PTRACE",
+        //"--security-opt=seccomp:unconfined",
+        //"--security-opt=apparmor:unconfined",
+        // "-v", "/tmp/.X11-unix:/tmp/.X11-unix:rw",
+        "-v", "//mnt/c/:/mnt/c/:rw",
+        //"-v", "/mnt/wslg:/mnt/wslg",
+        //"-v", "/usr/lib/wsl:/usr/lib/wsl",
+        //"--device=/dev/dxg",
+        //vehicle volume mount would be in this line
+        "--ipc=host"
+        //"--runtime=nvidia",
+        //"--gpus", "all",
+        //"-e NVIDIA_DRIVER_CAPABILITIES=all",
+        //"-e", "WAYLAND_DISPLAY=$WAYLAND_DISPLAY",
+        //"-e", "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR",
+        //"-e", "PULSE_SERVER=$PULSE_SERVER",
+        //"-e", "LD_LIBRARY_PATH=/usr/lib/wsl/lib"
+    ],
+    "containerEnv": {
+        // "DISPLAY": ":0"
+        //"${localEnv:DISPLAY}", // Needed for GUI try ":0" for windows
+        //"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
+        //"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}",
+        //"PULSE_SERVER": "${localEnv:PULSE_SERVER}",
+        //"LIBGL_ALWAYS_SOFTWARE": "1" // Needed for software rendering of opengl
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-docker",
+                "ms-python.python",
+                "ms-vscode.cpptools",
+                "ms-vscode.remote-repositories",
+                "mhutchie.git-graph",
+                "microsoft.vscode-docker",
+                "ms-iot.vscode-ros",
+                "spencerwmiles.vscode-task-buttons"
+            ]
+        }
+    }
+}

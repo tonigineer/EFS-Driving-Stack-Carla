@@ -1,0 +1,9 @@
+{
+    "VsCodeTaskButtons.showCounter": false,
+    "VsCodeTaskButtons.tasks": [
+        {
+            "label": "Carla-ROS-Bridge",
+            "task": "carla_ros_bridge",
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "carla_ros_bridge",
+            "type": "shell",
+            "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$WINDOWS_HOST timeout:=10",
+            "presentation": {
+                // "reveal": "silent",
+                // "revealProblems": "onProblem",
+                // "close": true
+            }
+        }
+    ]
+}
