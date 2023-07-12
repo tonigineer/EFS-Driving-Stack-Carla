@@ -9,29 +9,29 @@ ENV DEBIAN_FRONTEND=noninteractive
 # ###########################################
 # #   e:fs PROXY SETTINGS
 # ###########################################
-# # Setup Proxy for e:fs environment
-# # Check whether docker is being used on developer laptop or vehicle platform 
-# ARG PROXY
-# ARG PROXY_UPPERCASE
-# # Set PROXY variable to PROXY_UPPERCASE if PROXY is empty
-# # This should handle cases where the system defines a `HTTP_PROXY` variable but no `http_proxy` variable
-# ARG PROXY=${PROXY:-${PROXY_UPPERCASE}}
-# ARG SET_PROXY
-# ARG PROXY_ARG=${SET_PROXY:+"\"${PROXY}\";"}
-# ARG t1=${SET_PROXY:+"Acquire::http::Proxy "}
-# ARG t2=${SET_PROXY:+"Acquire::https::Proxy "}
-# # Setup proxy for apt to be used on developer laptops
-# # Empty lines will be written to the file in case of the environment being the vehicle platform
-# RUN echo "${t1}${PROXY_ARG}" >> /etc/apt/apt.conf.d/proxy.conf
-# RUN echo "${t2}${PROXY_ARG}" >> /etc/apt/apt.conf.d/proxy.conf
+# Setup Proxy for e:fs environment
+# Check whether docker is being used on developer laptop or vehicle platform 
+ARG PROXY
+ARG PROXY_UPPERCASE
+# Set PROXY variable to PROXY_UPPERCASE if PROXY is empty
+# This should handle cases where the system defines a `HTTP_PROXY` variable but no `http_proxy` variable
+ARG PROXY=${PROXY:-${PROXY_UPPERCASE}}
+ARG SET_PROXY
+ARG PROXY_ARG=${SET_PROXY:+"\"${PROXY}\";"}
+ARG t1=${SET_PROXY:+"Acquire::http::Proxy "}
+ARG t2=${SET_PROXY:+"Acquire::https::Proxy "}
+# Setup proxy for apt to be used on developer laptops
+# Empty lines will be written to the file in case of the environment being the vehicle platform
+RUN echo "${t1}${PROXY_ARG}" >> /etc/apt/apt.conf.d/proxy.conf
+RUN echo "${t2}${PROXY_ARG}" >> /etc/apt/apt.conf.d/proxy.conf
 
-# # Set proxys as environment variables for shells and commands in container to have internet access on developer laptops
-# # The environment variables will be set to be empty if the environment is the vehicle plattform
-# ARG ENV_PROXY=${SET_PROXY:+${PROXY}}
-# ENV HTTP_PROXY=${ENV_PROXY} 
-# ENV HTTPS_PROXY=${ENV_PROXY}
-# ENV http_proxy=${ENV_PROXY}
-# ENV https_proxy=${ENV_PROXY}
+# Set proxys as environment variables for shells and commands in container to have internet access on developer laptops
+# The environment variables will be set to be empty if the environment is the vehicle plattform
+ARG ENV_PROXY=${SET_PROXY:+${PROXY}}
+ENV HTTP_PROXY=${ENV_PROXY} 
+ENV HTTPS_PROXY=${ENV_PROXY}
+ENV http_proxy=${ENV_PROXY}
+ENV https_proxy=${ENV_PROXY}
 
 
 

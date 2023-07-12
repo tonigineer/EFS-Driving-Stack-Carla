@@ -1,9 +1,21 @@
 {
-    "VsCodeTaskButtons.showCounter": false,
+    "VsCodeTaskButtons.showCounter": true,
     "VsCodeTaskButtons.tasks": [
         {
             "label": "Carla-ROS-Bridge",
             "task": "carla_ros_bridge",
+        },
+        {
+            "label": "Set-Up-Scenario",
+            "task": "set_up_scenario",
+        },
+        {
+            "label": "Start-Control-Interface",
+            "task": "start_control_interface",
+        },
+        {
+            "label": "Open-Dashboard",
+            "task": "open_dashboard",
         }
     ]
 }

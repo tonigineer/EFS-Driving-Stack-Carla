@@ -1,5 +1,7 @@
+# folder
 build/
 install/
 log/
 
-.vscode/
+# specific files
+.devcontainer/env

@@ -6,10 +6,40 @@
             "type": "shell",
             "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$WINDOWS_HOST timeout:=10",
             "presentation": {
-                // "reveal": "silent",
-                // "revealProblems": "onProblem",
-                // "close": true
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": true
             }
-        }
+        },
+        {
+            "label": "set_up_scenario",
+            "type": "shell",
+            "command": "ros2 launch carla_spawn_objects carla_spawn_objects.launch.py objects_definition_file:='/workspaces/carla_simulation_pipeline/configs/scenarios/follow_forever.json'",
+            "presentation": {
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "close": true
+            }
+        },
+        {
+            "label": "start_control_interface",
+            "type": "shell",
+            "command": "ros2 launch carla_ackermann_control carla_ackermann_control.launch.py",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": true
+            },
+        },
+        {
+            "label": "open_dashboard",
+            "type": "shell",
+            "command": "python3 /workspaces/carla_simulation_pipeline/scripts/carla/dashboard.py",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": true
+            },
+        },
     ]
 }
