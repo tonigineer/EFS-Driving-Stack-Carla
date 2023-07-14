@@ -1,12 +1,15 @@
 {
     "version": "2.0.0",
     "tasks": [
+        // ===================================================================
+        //                      Building
+        // ===================================================================
         {
-            "label": "clean_up",
+            "label": "clean",
             "type": "shell",
             "command": "rm -rf build install log",
             "presentation": {
-                "reveal": "always",
+                "reveal": "silent",
                 "revealProblems": "onProblem",
                 "close": true
             }
@@ -19,11 +22,20 @@
                 "reveal": "always",
                 "revealProblems": "onProblem",
                 "focus": true,
-                "close": false
+                "close": true
             }
         },
         {
-            "label": "carla_ros_bridge",
+            "label": "re-build",
+            "type": "shell",
+            "dependsOrder": "sequence",
+            "dependsOn": ["clean", "build"]
+        },
+        // ===================================================================
+        //                      ROS-Bridge
+        // ===================================================================
+        {
+            "label": "carla-ros-bridge",
             "type": "shell",
             "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$WINDOWS_HOST timeout:=10",
             "presentation": {
@@ -33,7 +45,7 @@
             }
         },
         {
-            "label": "set_up_scenario",
+            "label": "scenario-follow-route",
             "type": "shell",
             "command": "ros2 launch carla_spawn_objects carla_spawn_objects.launch.py objects_definition_file:=$WORKSPACE_DIR/configs/scenarios/follow_route.json",
             "presentation": {
@@ -42,28 +54,11 @@
                 "close": false
             }
         },
+        // ===================================================================
+        //                      Services
+        // ===================================================================
         {
-            "label": "start_control_interface",
-            "type": "shell",
-            "command": "ros2 launch carla_ackermann_control carla_ackermann_control.launch.py",
-            "presentation": {
-                "reveal": "always",
-                "revealProblems": "onProblem",
-                "close": false
-            },
-        },
-        {
-            "label": "open_dashboard",
-            "type": "shell",
-            "command": "python3 $WORKSPACE_DIR/scripts/carla/dashboard.py",
-            "presentation": {
-                "reveal": "always",
-                "revealProblems": "onProblem",
-                "close": false
-            },
-        },
-        {
-            "label": "start_planner",
+            "label": "start-planner",
             "type": "shell",
             "command": "clear && ros2 launch planner planner.launch.py host:=$WINDOWS_HOST",
             "presentation": {
@@ -72,14 +67,37 @@
                 "close": false
             },
         },
+        // {
+        //     "label": "start_control_interface",
+        //     "type": "shell",
+        //     "command": "ros2 launch carla_ackermann_control carla_ackermann_control.launch.py",
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "revealProblems": "onProblem",
+        //         "close": false
+        //     },
+        // },
+        // ===================================================================
+        //                      Task for EGO-VEHICLE
+        // ===================================================================
         {
-            "label": "move_to_ego_vehicle",
+            "label": "ego-vehicle-move-to",
             "type": "shell",
-            "command": "clear && python3 ./scripts/carla/move_to_actor.py ego_vehicle",
+            "command": "clear && python3 -c 'from planner import CarlaAPI;pattern=[\"ego_vehicle\"];CarlaAPI.move_to_actor(pattern)'",
             "presentation": {
                 "reveal": "silent",
                 "revealProblems": "onProblem",
-                "close": true
+                "close": false
+            },
+        },
+        {
+            "label": "ego-vehicle-open-dashboard",
+            "type": "shell",
+            "command": "python3 $WORKSPACE_DIR/scripts/carla/dashboard.py",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": false
             },
         },
     ]

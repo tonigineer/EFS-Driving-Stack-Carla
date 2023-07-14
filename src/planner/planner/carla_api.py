@@ -163,6 +163,9 @@ class CarlaAPI():
     @classmethod
     def move_to_actor(cls, pattern, world: carla.World = None) -> None:
         """Move spectator of Carla main window to actor."""
+        if not world:
+            world = cls.get_world()
+
         actors = cls.get_actors(pattern, world)
 
         if not actors:
@@ -184,4 +187,4 @@ class CarlaAPI():
 
 
 if __name__ == "__main__":
-    CarlaAPI.remove_actors(pattern=['ego_vehicle'])
+    CarlaAPI.move_to_actor(pattern=['ego_vehicle'])

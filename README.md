@@ -35,4 +35,3 @@ This section contains all the steps to get an *exemplary* simulation running.
     3. `Goto ego` - Move the [spectator](https://carla.readthedocs.io/en/latest/tuto_G_getting_started/#the-spectator) (main Carla window) to the [actor](https://carla.readthedocs.io/en/latest/core_actors/) with the role name `ego_vehicle`
     4. `Dashboard` - Start a dashboard, that uses RGB-Cameras around the vehicle to show different angles
     5. `Start planner` - Start the [planner](src/planner/planner/planner.py) to generate a random [route](https://github.com/carla-simulator/ros-bridge/blob/master/carla_waypoint_publisher/src/carla_waypoint_publisher/carla_waypoint_publisher.py) and publish a [reference]() for the controller
-

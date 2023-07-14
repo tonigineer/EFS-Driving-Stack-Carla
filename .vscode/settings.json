@@ -2,36 +2,66 @@
     "VsCodeTaskButtons.showCounter": true,
     "VsCodeTaskButtons.tasks": [
         {
-            "label": "Clean-Up",
-            "task": "clean_up",
+            "label": "$(notebook-move-down) Build",
+            "task": "build",
+            "tooltip": "🛠️ Start the \"build\" task"
         },
         {
-            "label": "Build",
-            "task": "build",
+            "label": "$(notebook-delete-cell) Clean",
+            "task": "clean",
+            "tooltip": "🧹 Start a \"clean\" task"
+        },
+        {
+            "label": "$(search-refresh) Re-Build",
+            "task": "re-build",
+            "tooltip": "🧹🛠️ Start the \"re-build\" task"
         },
         {
             "label": "Carla-ROS-Bridge",
-            "task": "carla_ros_bridge",
+            "task": "carla-ros-bridge",
+            "tooltip": "🌉 Start the \"carla-ros-bridge\""
         },
         {
-            "label": "Set-Up-Scenario",
-            "task": "set_up_scenario",
+            "label": "$(server-process) Scenario",
+            "tasks": [
+                {
+                    "label": "🥾 Follow random route",
+                    "task": "scenario-follow-route",
+                    "description": "   💡 One car follows a random route around town"
+                },
+            ],
+            "tooltip": "🌘 Select a pre-defined scenario, e.g.: \"follow route\""
         },
         {
-            "label": "Start-Control-Interface",
-            "task": "start_control_interface",
+            "label": "$(server-process) Services",
+            "tasks": [
+                {
+                    "label": "🗺️ Planner random route for \"ego-vehicle\"",
+                    "task": "start-planner",
+                    "description": "   💡 Start planner with messages of path and reference for actor \"ego-vehicle\""
+                },
+            ],
+            "tooltip": "🦺 Start a desired service, e.g.: \"planner\", \"controller\", etc."
         },
         {
-            "label": "Open-Dashboard",
-            "task": "open_dashboard",
+            "label": "$(server-process) Tools",
+            "tasks": [
+                {
+                    "label": "📍 \"ego-vehicle\" - move to",
+                    "task": "ego-vehicle-move-to",
+                    "description": "   💡 Move spectator to actor \"ego_vehicle\""
+                },
+                {
+                    "label": "🎥 \"ego-vehicle\" - open dashboard",
+                    "task": "ego-vehicle-open-dashboard",
+                    "description": "   💡 Open dashboard for actor \"ego-vehicle\" with two cameras"
+                },
+            ],
+            "tooltip": "🧰 Toolbox to get around here"
         },
-        {
-            "label": "Start-Planner",
-            "task": "start_planner",
-        },
-        {
-            "label": "Goto-Ego",
-            "task": "move_to_ego_vehicle",
-        }
+        // {
+        //     "label": "Start-Control-Interface",
+        //     "task": "start_control_interface",
+        // },
     ]
 }
