@@ -2,7 +2,7 @@
     "objects": 
     [
         {
-            "type": "vehicle.audi.a2",
+            "type": "vehicle.audi.etron",
             "id": "ego_vehicle",
             "sensors": 
             [

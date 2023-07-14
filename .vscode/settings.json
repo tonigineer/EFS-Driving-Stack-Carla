@@ -2,6 +2,14 @@
     "VsCodeTaskButtons.showCounter": true,
     "VsCodeTaskButtons.tasks": [
         {
+            "label": "Clean-Up",
+            "task": "clean_up",
+        },
+        {
+            "label": "Build",
+            "task": "build",
+        },
+        {
             "label": "Carla-ROS-Bridge",
             "task": "carla_ros_bridge",
         },
@@ -16,6 +24,14 @@
         {
             "label": "Open-Dashboard",
             "task": "open_dashboard",
+        },
+        {
+            "label": "Start-Planner",
+            "task": "start_planner",
+        },
+        {
+            "label": "Goto-Ego",
+            "task": "move_to_ego_vehicle",
         }
     ]
 }

@@ -35,6 +35,7 @@
         //"-e", "LD_LIBRARY_PATH=/usr/lib/wsl/lib"
     ],
     "containerEnv": {
+        "WORKSPACE_DIR": "${containerWorkspaceFolder}"
         // "DISPLAY": ":0"
         //"${localEnv:DISPLAY}", // Needed for GUI try ":0" for windows
         //"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
@@ -42,15 +43,16 @@
         //"PULSE_SERVER": "${localEnv:PULSE_SERVER}",
         //"LIBGL_ALWAYS_SOFTWARE": "1" // Needed for software rendering of opengl
     },
+    
     "customizations": {
         "vscode": {
             "extensions": [
+                "microsoft.vscode-docker",
                 "ms-azuretools.vscode-docker",
                 "ms-python.python",
                 "ms-vscode.cpptools",
                 "ms-vscode.remote-repositories",
                 "mhutchie.git-graph",
-                "microsoft.vscode-docker",
                 "ms-iot.vscode-ros",
                 "spencerwmiles.vscode-task-buttons"
             ]

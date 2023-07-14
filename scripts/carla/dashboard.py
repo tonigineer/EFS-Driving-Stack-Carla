@@ -39,7 +39,7 @@ class DisplayManager:
     """
 
     EXIT_KEYS = [pg.K_ESCAPE, pg.K_q]
-    MAX_FPS = 144
+    MAX_FPS = 60
 
     sensor_list = []
 

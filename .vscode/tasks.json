@@ -2,9 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "carla_ros_bridge",
+            "label": "clean_up",
             "type": "shell",
-            "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$WINDOWS_HOST timeout:=10",
+            "command": "rm -rf build install log",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
@@ -12,13 +12,34 @@
             }
         },
         {
+            "label": "build",
+            "type": "shell",
+            "command": "clear && colcon build --symlink-install && source install/setup.bash",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "focus": true,
+                "close": false
+            }
+        },
+        {
+            "label": "carla_ros_bridge",
+            "type": "shell",
+            "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$WINDOWS_HOST timeout:=10",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": false
+            }
+        },
+        {
             "label": "set_up_scenario",
             "type": "shell",
-            "command": "ros2 launch carla_spawn_objects carla_spawn_objects.launch.py objects_definition_file:='/workspaces/carla_simulation_pipeline/configs/scenarios/follow_forever.json'",
+            "command": "ros2 launch carla_spawn_objects carla_spawn_objects.launch.py objects_definition_file:=$WORKSPACE_DIR/configs/scenarios/follow_route.json",
             "presentation": {
-                "reveal": "silent",
+                "reveal": "always",
                 "revealProblems": "onProblem",
-                "close": true
+                "close": false
             }
         },
         {
@@ -28,15 +49,35 @@
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
-                "close": true
+                "close": false
             },
         },
         {
             "label": "open_dashboard",
             "type": "shell",
-            "command": "python3 /workspaces/carla_simulation_pipeline/scripts/carla/dashboard.py",
+            "command": "python3 $WORKSPACE_DIR/scripts/carla/dashboard.py",
             "presentation": {
                 "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": false
+            },
+        },
+        {
+            "label": "start_planner",
+            "type": "shell",
+            "command": "clear && ros2 launch planner planner.launch.py host:=$WINDOWS_HOST",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": false
+            },
+        },
+        {
+            "label": "move_to_ego_vehicle",
+            "type": "shell",
+            "command": "clear && python3 ./scripts/carla/move_to_actor.py ego_vehicle",
+            "presentation": {
+                "reveal": "silent",
                 "revealProblems": "onProblem",
                 "close": true
             },

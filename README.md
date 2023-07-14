@@ -26,8 +26,13 @@ This section contains all the steps to get an *exemplary* simulation running.
 
     You can specify the *resolution* and *quality* if needed with `-ResX=200 -ResY=100 --quality-level=Low`
 
-- [x] Start all necessary tasks from the [ROS/ROS2 bridge for CARLA simulator](https://github.com/carla-simulator/ros-bridge) 
+- [x] Start all necessary tasks from the [ROS/ROS2 bridge for CARLA simulator](https://github.com/carla-simulator/ros-bridge) and this [Repository](README.md)
 
-    With the building of the **devcontainer**, a plugin called [Task Buttons](https://marketplace.visualstudio.com/items?itemName=spencerwmiles.vscode-task-buttons) was installed. This plugin adds buttons for configurable tasks to the **status bar** at the bottom of [Visual Studio Code](https://code.visualstudio.com/).
+    With the building of the [devcontainer](.devcontainer/devcontainer.json), a plugin called [Task Buttons](https://marketplace.visualstudio.com/items?itemName=spencerwmiles.vscode-task-buttons) was installed. This plugin adds buttons for configurable tasks to the **status bar** at the bottom of [Visual Studio Code](https://code.visualstudio.com/).
 
-    Here, you have to start `Carla-ROS-Bridge`, `Set-Up-Scenario` and `Control-Interface`. A detailed description for these task can be found further down below.
+    1. `Carla-ROS-Bridge` - Kinda selfexplanatory - but in case, [there](https://github.com/carla-simulator/ros-bridge/blob/master/README.md) you go
+    2. `Set-Up-Scenario` - Place all Actors with Sensory according to selected [configuration](configs/scenarios/follow_route.json)
+    3. `Goto ego` - Move the [spectator](https://carla.readthedocs.io/en/latest/tuto_G_getting_started/#the-spectator) (main Carla window) to the [actor](https://carla.readthedocs.io/en/latest/core_actors/) with the role name `ego_vehicle`
+    4. `Dashboard` - Start a dashboard, that uses RGB-Cameras around the vehicle to show different angles
+    5. `Start planner` - Start the [planner](src/planner/planner/planner.py) to generate a random [route](https://github.com/carla-simulator/ros-bridge/blob/master/carla_waypoint_publisher/src/carla_waypoint_publisher/carla_waypoint_publisher.py) and publish a [reference]() for the controller
+
