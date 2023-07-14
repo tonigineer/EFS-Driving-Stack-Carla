@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         // ===================================================================
-        //                      Building
+        //                      Main
         // ===================================================================
         {
             "label": "clean",
@@ -22,7 +22,7 @@
                 "reveal": "always",
                 "revealProblems": "onProblem",
                 "focus": true,
-                "close": true
+                "close": false
             }
         },
         {
@@ -31,69 +31,95 @@
             "dependsOrder": "sequence",
             "dependsOn": ["clean", "build"]
         },
-        // ===================================================================
-        //                      ROS-Bridge
-        // ===================================================================
         {
             "label": "carla-ros-bridge",
             "type": "shell",
-            "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$WINDOWS_HOST timeout:=10",
+            "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$WINDOWS_HOST timeout:=10 synchronous_mode_wait_for_vehicle_control_command:=False fixed_delta_seconds:=0.05 use_sim_time:=True passive:=True",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
                 "close": false
+            }
+        },
+        // ===================================================================
+        //                      Scenario
+        // ===================================================================
+        {
+            "label": "set-up-scenario",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "spawn-actor",
+                "move-to-actor",
+                "start-planner",
+                "ego-vehicle-open-dashboard"
+            ]
+        },
+        {
+            "label": "spawn-actor",
+            "type": "shell",
+            "command": "clear && python3 -c 'from planner import CarlaAPI; CarlaAPI.remove_actors([\"ego_vehicle\"]); CarlaAPI.spawn_vehicle(blueprint=\"vehicle.audi.etron\",role_name=\"ego_vehicle\")'",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": true
             }
         },
         {
-            "label": "scenario-follow-route",
+            "label": "move-to-actor",
             "type": "shell",
-            "command": "ros2 launch carla_spawn_objects carla_spawn_objects.launch.py objects_definition_file:=$WORKSPACE_DIR/configs/scenarios/follow_route.json",
+            "command": "clear && python3 -c 'from planner import CarlaAPI; CarlaAPI.move_to_actor([\"ego_vehicle\"])'",
             "presentation": {
-                "reveal": "always",
+                "reveal": "silent",
                 "revealProblems": "onProblem",
-                "close": false
-            }
+                "close": true
+            },
         },
-        // ===================================================================
-        //                      Services
-        // ===================================================================
         {
             "label": "start-planner",
             "type": "shell",
             "command": "clear && ros2 launch planner planner.launch.py host:=$WINDOWS_HOST",
-            "presentation": {
-                "reveal": "always",
-                "revealProblems": "onProblem",
-                "close": false
-            },
-        },
-        // {
-        //     "label": "start_control_interface",
-        //     "type": "shell",
-        //     "command": "ros2 launch carla_ackermann_control carla_ackermann_control.launch.py",
-        //     "presentation": {
-        //         "reveal": "always",
-        //         "revealProblems": "onProblem",
-        //         "close": false
-        //     },
-        // },
-        // ===================================================================
-        //                      Task for EGO-VEHICLE
-        // ===================================================================
-        {
-            "label": "ego-vehicle-move-to",
-            "type": "shell",
-            "command": "clear && python3 -c 'from planner import CarlaAPI;pattern=[\"ego_vehicle\"];CarlaAPI.move_to_actor(pattern)'",
             "presentation": {
                 "reveal": "silent",
                 "revealProblems": "onProblem",
                 "close": false
             },
         },
+        // ===================================================================
+        //                      Controlling
+        // ===================================================================
+        {
+            "label": "start-controlling",
+            // "type": "shell",
+            // "dependsOrder": "sequence",
+            "dependsOn": [
+                "ego-vehicle-open-dashboard",
+                "start-ackermann-interface",
+                "ego-vehicle-controller"]
+        },
         {
             "label": "ego-vehicle-open-dashboard",
             "type": "shell",
             "command": "python3 $WORKSPACE_DIR/scripts/carla/dashboard.py",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": false
+            },
+        },
+        {
+            "label": "start-ackermann-interface",
+            "type": "shell",
+            "command": "ros2 launch carla_ackermann_control carla_ackermann_control.launch.py",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": true
+            },
+        },
+        {
+            "label": "ego-vehicle-controller",
+            "type": "shell",
+            "command": "ros2 launch controller controller.launch.py",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",

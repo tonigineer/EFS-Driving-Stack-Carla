@@ -21,9 +21,9 @@ def generate_launch_description():
             default_value='ego_vehicle'
         ),
         launch_ros.actions.Node(
-            package='planner',
-            executable='planner',
-            name='planner',
+            package='controller',
+            executable='controller',
+            name='controller',
             output='screen',
             emulate_tty='True',
             parameters=[

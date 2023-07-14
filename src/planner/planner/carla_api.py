@@ -16,6 +16,8 @@ import os
 import carla
 import numpy as np
 from typing import Dict, List
+from random import choice
+from time import sleep
 
 from carla_msgs.msg import CarlaStatus
 
@@ -138,13 +140,17 @@ class CarlaAPI():
         if not world:
             world = cls.get_world()
 
+        if type(pattern) is not list:
+            logwarn(f'keyword argmeunte `pattern` put in a list')
+            pattern = [pattern]
+
         actors = []
         for actor in world.get_actors():
             matched = False
-            if any(p in actor.type_id for p in pattern):
+            if any(p == actor.type_id for p in pattern):
                 matched = True
             if actor.attributes.get('role_name'):
-                if any(p in actor.attributes.get('role_name') for p in pattern):
+                if any(p == actor.attributes.get('role_name') for p in pattern):
                     matched = True
             if matched:
                 actors.append(actor)
@@ -158,6 +164,7 @@ class CarlaAPI():
         """Remove actors with matching pattern."""
         actors = cls.get_actors(pattern=pattern, world=world)
         for actor in actors:
+            loginfo(f'Removed actor: {actor}')
             actor.destroy()
 
     @classmethod
@@ -185,6 +192,26 @@ class CarlaAPI():
 
         world.get_spectator().set_transform(transform)
 
+    @classmethod
+    def spawn_vehicle(cls, blueprint: str = 'etron',
+                      role_name: str = 'ego_vehicle',
+                      spawn_point: carla.Transform = None,
+                      world: carla.World = None):
+        if not world:
+            world = cls.get_world()
+
+        if not spawn_point:
+            spawn_point = choice(world.get_map().get_spawn_points())
+
+        bp_lib = world.get_blueprint_library()
+        vehicle_bp = bp_lib.filter(blueprint)[0]
+        vehicle_bp.set_attribute('role_name', role_name)
+
+        vehilce = world.try_spawn_actor(vehicle_bp, spawn_point)
+
 
 if __name__ == "__main__":
+    CarlaAPI.remove_actors(pattern=['ego_vehicle'])
+    CarlaAPI.spawn_vehicle(blueprint='vehicle.audi.etron',
+                           role_name='ego_vehicle')
     CarlaAPI.move_to_actor(pattern=['ego_vehicle'])

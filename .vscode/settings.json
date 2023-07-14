@@ -1,67 +1,78 @@
 {
-    "VsCodeTaskButtons.showCounter": true,
+    "VsCodeTaskButtons.showCounter": false,
     "VsCodeTaskButtons.tasks": [
-        {
-            "label": "$(notebook-move-down) Build",
-            "task": "build",
-            "tooltip": "🛠️ Start the \"build\" task"
-        },
-        {
-            "label": "$(notebook-delete-cell) Clean",
-            "task": "clean",
-            "tooltip": "🧹 Start a \"clean\" task"
-        },
+        // https://code.visualstudio.com/api/references/icons-in-labels
+        // https://emojipedia.org/
         {
             "label": "$(search-refresh) Re-Build",
             "task": "re-build",
             "tooltip": "🧹🛠️ Start the \"re-build\" task"
         },
         {
-            "label": "Carla-ROS-Bridge",
+            "label": "$(comments-view-icon) Carla-ROS-Bridge",
             "task": "carla-ros-bridge",
             "tooltip": "🌉 Start the \"carla-ros-bridge\""
         },
         {
-            "label": "$(server-process) Scenario",
-            "tasks": [
-                {
-                    "label": "🥾 Follow random route",
-                    "task": "scenario-follow-route",
-                    "description": "   💡 One car follows a random route around town"
-                },
-            ],
-            "tooltip": "🌘 Select a pre-defined scenario, e.g.: \"follow route\""
+            "label": "$(ports-open-browser-icon) Prepare/reset scenario",
+            "task": "set-up-scenario",
+            "tooltip": "🗺️ Prepare/reset scenario \"follow-route\""
         },
         {
-            "label": "$(server-process) Services",
-            "tasks": [
-                {
-                    "label": "🗺️ Planner random route for \"ego-vehicle\"",
-                    "task": "start-planner",
-                    "description": "   💡 Start planner with messages of path and reference for actor \"ego-vehicle\""
-                },
-            ],
-            "tooltip": "🦺 Start a desired service, e.g.: \"planner\", \"controller\", etc."
+            "label": "$(notebook-execute-all) Start controlling",
+            "task": "start-controlling",
+            "tooltip": "🚗 Start \"MPC controller\" with \"ackermann-interface\""
         },
         {
-            "label": "$(server-process) Tools",
+            "label": "$(file-directory-create) Tools",
             "tasks": [
                 {
-                    "label": "📍 \"ego-vehicle\" - move to",
-                    "task": "ego-vehicle-move-to",
-                    "description": "   💡 Move spectator to actor \"ego_vehicle\""
+                    "label": "$(tools) Build",
+                    "task": "build",
+                    "description": "Call colcon build --symlink-install"
                 },
                 {
-                    "label": "🎥 \"ego-vehicle\" - open dashboard",
+                    "label": "$(notebook-delete-cell) Clean",
+                    "task": "clean",
+                    "description": "Remove all build directories"
+                },
+                {
+                    "label": "$(person-add) Spawn Actor",
+                    "task": "spawn-actor",
+                    "description": "Spawn \"Audi Etron\" as \"ego-vehicle\" (destroy if exists)"
+                },
+                {
+                    "label": "$(telescope) Move to Actor",
+                    "task": "move-to-actor",
+                    "description": "Move to Actor \"ego-vehicle\""
+                },
+                // {
+                //     "label": "$(notebook-delete-cell) Follow random route",
+                //     "task": "scenario-follow-route",
+                //     "description": "   💡 One car follows a random route around town"
+                // },
+                {
+                    "label": "$(dashboard) Open Dashboard",
                     "task": "ego-vehicle-open-dashboard",
-                    "description": "   💡 Open dashboard for actor \"ego-vehicle\" with two cameras"
+                    "description": "Open dashboard for actor \"ego-vehicle\" with two cameras"
+                },
+                {
+                    "label": "$(notebook-delete-cell) Start Planner",
+                    "task": "start-planner",
+                    "description": "Random route with path and reference messages for actor \"ego-vehicle\""
+                },
+                {
+                    "label": "$(symbol-event) Controller",
+                    "task": "ego-vehicle-controller",
+                    "description": "Start MPC controller to follow reference from \"Planner\""
+                },
+                {
+                    "label": "$(symbol-interface) Ackermann",
+                    "task": "start-ackermann-interface",
+                    "description": "Start interface for Carla to control by Steering angle, Velocity and Acceleration"
                 },
             ],
-            "tooltip": "🧰 Toolbox to get around here"
+            "tooltip": "Collection of \"all tasks\" to start separately"
         },
-        // {
-        //     "label": "Start-Control-Interface",
-        //     "task": "start_control_interface",
-        // },
     ]
 }

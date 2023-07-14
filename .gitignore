@@ -6,5 +6,6 @@ __pycache__/
 
 # specific files
 .devcontainer/env
+launch.json
 
 # extensions
