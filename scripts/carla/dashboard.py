@@ -262,8 +262,9 @@ class Monitor:
             vehicle_id = ca.get_actor('ego_vehicle')
 
         sensory = [
-            SensorSetup(vehicle_id, "RGBCamera", (0, 0, 20), (0, -90, 0)),
+            SensorSetup(vehicle_id, "RGBCamera", (0, 0, 10), (0, -90, 0)),
             SensorSetup(vehicle_id, "RGBCamera", (-4, 0, 2.4), (0, -8, 0)),
+            SensorSetup(vehicle_id, "RGBCamera", (-1, 2, 2.4), (0, -8, -30)),
         ]
 
         self.initiate_monitor(sensory, disp_size=[HEIGHT*len(sensory), HEIGHT])

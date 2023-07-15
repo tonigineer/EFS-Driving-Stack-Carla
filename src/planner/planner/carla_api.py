@@ -13,6 +13,7 @@ decisions aim to achieve the following:
 """
 
 import os
+import re
 import carla
 import numpy as np
 from typing import Dict, List
@@ -147,10 +148,10 @@ class CarlaAPI():
         actors = []
         for actor in world.get_actors():
             matched = False
-            if any(p == actor.type_id for p in pattern):
+            if any(p in actor.type_id for p in pattern):
                 matched = True
             if actor.attributes.get('role_name'):
-                if any(p == actor.attributes.get('role_name') for p in pattern):
+                if any(p in actor.attributes.get('role_name') for p in pattern):
                     matched = True
             if matched:
                 actors.append(actor)
@@ -185,8 +186,12 @@ class CarlaAPI():
         loc = actors[0].get_transform().location
         rot = actors[0].get_transform().rotation
 
+        offset = -6
+        dx = offset * np.cos(np.deg2rad(rot.yaw))
+        dy = offset * np.sin(np.deg2rad(rot.yaw))
+
         transform = carla.Transform(
-            carla.Location(loc.x - 7.5*np.cos(rot.yaw), loc.y, loc.z + 3),
+            carla.Location(loc.x + dx, loc.y + dy, loc.z + 3),
             carla.Rotation(rot.pitch - 15, rot.yaw, rot.roll)
         )
 
@@ -209,9 +214,43 @@ class CarlaAPI():
 
         vehilce = world.try_spawn_actor(vehicle_bp, spawn_point)
 
+    @classmethod
+    def print_all_actors(cls,
+                         world: carla.World = None):
+        if not world:
+            world = cls.get_world()
+
+        for actor in world.get_actors():
+            print(actor)
+
+    @classmethod
+    def respawn_actor(cls,
+                      world: carla.World = None,
+                      role_name: str = 'ego_vehicle'):
+        if not world:
+            world = cls.get_world()
+
+        actors = cls.get_actors(world=world, pattern=[role_name])
+        actor = actors[0]
+
+        # TODO: Quite inelegant to use a file, but otherwise a node
+        # needs to be set up to get the information from ROS topic's.
+        with open(f'./log/PLANNER_SPAWN_POINT_{role_name}') as f:
+            line = f.readlines()[0]
+        numbers = re.findall(r"[-+]?(?:\d*\.*\d+)", line)
+
+        spawn_point = carla.Transform(
+            carla.Location(*map(float, numbers[0:3])),
+            carla.Rotation(*map(float, numbers[3:6]))
+        )
+        actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0))
+        actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=0.0))
+        actor.set_transform(spawn_point)
+
 
 if __name__ == "__main__":
-    CarlaAPI.remove_actors(pattern=['ego_vehicle'])
-    CarlaAPI.spawn_vehicle(blueprint='vehicle.audi.etron',
-                           role_name='ego_vehicle')
-    CarlaAPI.move_to_actor(pattern=['ego_vehicle'])
+    # CarlaAPI.remove_actors(pattern=['ego_vehicle'])
+    # CarlaAPI.spawn_vehicle(blueprint='vehicle.audi.etron',
+    #                        role_name='ego_vehicle')
+    # CarlaAPI.move_to_actor(pattern=['ego_vehicle'])
+    CarlaAPI.respawn_actor()

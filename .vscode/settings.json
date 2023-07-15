@@ -14,17 +14,22 @@
             "tooltip": "🌉 Start the \"carla-ros-bridge\""
         },
         {
-            "label": "$(ports-open-browser-icon) Prepare/reset scenario",
+            "label": "$(ports-open-browser-icon) Prepare scenario",
             "task": "set-up-scenario",
-            "tooltip": "🗺️ Prepare/reset scenario \"follow-route\""
+            "tooltip": "🗺️ Load \"Map\" and spawn \"Actors\""
         },
         {
-            "label": "$(notebook-execute-all) Start controlling",
+            "label": "$(location) Ready scenario",
+            "task": "ready-scenario",
+            "tooltip": "🎬 Start \"Planner\" and open \"Dashboard\""
+        },
+        {
+            "label": "$(notebook-execute-all) Start scenario",
             "task": "start-controlling",
-            "tooltip": "🚗 Start \"MPC controller\" with \"ackermann-interface\""
+            "tooltip": "🎮 Start \"MPC controller\" with \"Ackermann-Interface\""
         },
         {
-            "label": "$(file-directory-create) Tools",
+            "label": "$(file-directory-create) All tasks",
             "tasks": [
                 {
                     "label": "$(tools) Build",
@@ -46,6 +51,11 @@
                     "task": "move-to-actor",
                     "description": "Move to Actor \"ego-vehicle\""
                 },
+                {
+                "label": "$(breakpoints-remove-all) Remove Actors",
+                    "task": "remove-actor",
+                    "description": "Remove all \"ego-vehicle\" roles (Sometimes the Carla-ROS-Bridge does not remove their spawned actors)"
+                },
                 // {
                 //     "label": "$(notebook-delete-cell) Follow random route",
                 //     "task": "scenario-follow-route",
@@ -53,7 +63,7 @@
                 // },
                 {
                     "label": "$(dashboard) Open Dashboard",
-                    "task": "ego-vehicle-open-dashboard",
+                    "task": "open-dashboard",
                     "description": "Open dashboard for actor \"ego-vehicle\" with two cameras"
                 },
                 {
@@ -62,8 +72,13 @@
                     "description": "Random route with path and reference messages for actor \"ego-vehicle\""
                 },
                 {
+                    "label": "$(debug-reverse-continue) Respawn Actor",
+                    "task": "respawn-actor",
+                    "description": "Respawn Actor with role \"ego-vehicle\" at the beginning of the planned route."
+                },
+                {
                     "label": "$(symbol-event) Controller",
-                    "task": "ego-vehicle-controller",
+                    "task": "start-mpc-controller",
                     "description": "Start MPC controller to follow reference from \"Planner\""
                 },
                 {

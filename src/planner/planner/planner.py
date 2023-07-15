@@ -1,3 +1,4 @@
+import os
 import carla
 import numpy as np
 
@@ -41,10 +42,13 @@ class Planner(CompatibleNode):
         self.set_up_communication()
 
         self.calculate_route()
-        self._callback_route()  # no timer, one published once for now
 
     def set_up_communication(self):
         # // PUBLISHER
+        timer_period = 10.0  # seconds
+        self.timer_route = self.create_timer(
+            timer_period, self._callback_route
+        )
         self.pub_path = self.create_publisher(
             Path, f'/carla/{self.role_name}/planner/route', 10
         )
@@ -80,6 +84,15 @@ class Planner(CompatibleNode):
                 msg.poses.append(pose)
 
         self.pub_path.publish(msg)
+        CarlaAPI.draw_debug_line(
+            points=self.nodes,
+            world=self.world,
+            life_time=10.5,
+            location_z=0.05
+        )
+        self.loginfo(
+            f'▹ Route visualized as line in Carla (10s life time)'
+        )
 
     def calculate_route(self):
         """Create a route vom `actor` to `goal`.
@@ -102,15 +115,9 @@ class Planner(CompatibleNode):
 
         self.nodes = CarlaAPI.convert_waypoints_to_array(self.current_route)
 
-        CarlaAPI.draw_debug_line(
-            points=self.nodes,
-            world=self.world,
-            life_time=0,
-            location_z=0.05
-        )
-        self.loginfo(
-            f'▹ Route visualized as line in Carla'
-        )
+        # Output spawnpoint of route for respawning, for random spawn points
+        os.system(f'echo "{self.current_route[0][0].transform}" '
+                  f'> ./log/PLANNER_SPAWN_POINT_{self.role_name}')
 
     def _callback_reference(self):
         roscomp.loginfo("Publish `reference` topic: ")
@@ -138,6 +145,9 @@ class Planner(CompatibleNode):
         dist_2 = np.sum((self.nodes - ego_pos)**2, axis=1)
         idx = np.argmin(dist_2)
 
+        # Make sure to start reference behind current position
+        idx -= min(idx, 3)
+
         s = 0
         reference_indices = [idx]
         while s <= self.REFERENCE_MIN_LENGTH:
@@ -147,16 +157,16 @@ class Planner(CompatibleNode):
             s += np.sqrt(dx*dx + dy*dy)
             reference_indices.append(idx)
 
-        CarlaAPI.draw_debug_line(
-            points=self.nodes[reference_indices[0]:reference_indices[-1], :],
-            world=self.world,
-            life_time=1.5,
-            location_z=0.1,
-            color=carla.Color(1, 1, 1, 100)
-        )
-        self.loginfo(
-            f'▹ Reference temporarily visualized as line in Carla'
-        )
+        # CarlaAPI.draw_debug_line(
+        #     points=self.nodes[reference_indices[0]:reference_indices[-1], :],
+        #     world=self.world,
+        #     life_time=1.5,
+        #     location_z=0.1,
+        #     color=carla.Color(1, 1, 1, 100)
+        # )
+        # self.loginfo(
+        #     f'▹ Reference visualized as line in Carla (1s life time)'
+        # )
 
         return reference_indices
 
