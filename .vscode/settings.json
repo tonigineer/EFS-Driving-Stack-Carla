@@ -52,22 +52,22 @@
                     "description": "Move to Actor \"ego-vehicle\""
                 },
                 {
+                    "label": "$(timeline-unpin) Pin Spectator",
+                    "task": "pin-spectator",
+                    "description": "Pin Spectator to Actor \"ego-vehicle\" (i.e.: follow vehicle in main window)"
+                },
+                {
                 "label": "$(breakpoints-remove-all) Remove Actors",
                     "task": "remove-actor",
                     "description": "Remove all \"ego-vehicle\" roles (Sometimes the Carla-ROS-Bridge does not remove their spawned actors)"
                 },
-                // {
-                //     "label": "$(notebook-delete-cell) Follow random route",
-                //     "task": "scenario-follow-route",
-                //     "description": "   💡 One car follows a random route around town"
-                // },
                 {
                     "label": "$(dashboard) Open Dashboard",
                     "task": "open-dashboard",
                     "description": "Open dashboard for actor \"ego-vehicle\" with two cameras"
                 },
                 {
-                    "label": "$(notebook-delete-cell) Start Planner",
+                    "label": "$(compass) Start Planner",
                     "task": "start-planner",
                     "description": "Random route with path and reference messages for actor \"ego-vehicle\""
                 },
@@ -77,14 +77,14 @@
                     "description": "Respawn Actor with role \"ego-vehicle\" at the beginning of the planned route."
                 },
                 {
-                    "label": "$(symbol-event) Controller",
-                    "task": "start-mpc-controller",
-                    "description": "Start MPC controller to follow reference from \"Planner\""
-                },
-                {
                     "label": "$(symbol-interface) Ackermann",
                     "task": "start-ackermann-interface",
                     "description": "Start interface for Carla to control by Steering angle, Velocity and Acceleration"
+                },
+                {
+                    "label": "$(symbol-event) Controller",
+                    "task": "start-mpc-controller",
+                    "description": "Start MPC controller to follow reference from \"Planner\""
                 },
             ],
             "tooltip": "Collection of \"all tasks\" to start separately"

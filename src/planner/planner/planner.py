@@ -88,7 +88,8 @@ class Planner(CompatibleNode):
             points=self.nodes,
             world=self.world,
             life_time=10.5,
-            location_z=0.05
+            location_z=0.01,
+            thickness=0.2
         )
         self.loginfo(
             f'▹ Route visualized as line in Carla (10s life time)'
@@ -173,7 +174,7 @@ class Planner(CompatibleNode):
 
 def main(args=None):
     """Start basic ROS2 main function `planner` node."""
-    roscomp.init('carla_path_publisher', args)
+    roscomp.init('planner', args)
 
     planner = None
     try:

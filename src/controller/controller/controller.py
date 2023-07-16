@@ -29,7 +29,7 @@ class MPCNode(CompatibleNode):
 
     state = np.zeros([6, 1])
     reference = np.zeros([
-        int(TIME_HORIZON/SAMPLE_TIME_SECONDS) + 2, 2
+        int(TIME_HORIZON/SAMPLE_TIME_SECONDS) + 1, 2
     ])
 
     def __init__(self):
@@ -91,35 +91,6 @@ class MPCNode(CompatibleNode):
             [pose.pose.position.x, pose.pose.position.y]
             for pose in msg.poses
         ])
-        # self.loginfo(f'{nodes}')
-        # self.reference = np.unique(nodes, axis=0)
-        # self.loginfo(f'{self.state[0:2, 0]}')
-        # self.loginfo(f'{nodes}')
-
-        # _, idc = np.unique(nodes, axis=0, return_index=True)
-        # nodes = nodes[sorted(idc), :]  # FFS, np.unique also sorts
-
-        # self.loginfo(f'RECEIVED ODOMETRY')
-        # self.loginfo(f'STATE: {self.state[0:2, 0]}')
-        # self.loginfo(f'REF:   {nodes}')
-
-        # self.loginfo(f'{nodes}')
-
-        # self.state = np.array([
-        #     self.vehicle.get_transform().location.x,
-        #     self.vehicle.get_transform().location.y
-        # ])
-
-        # v = self.vehicle.get_velocity()
-        # a = self.vehicle.get_acceleration()
-        # return np.array([[
-        #     self.vehicle.get_transform().location.x,
-        #     self.vehicle.get_transform().location.y,
-        #     self.vehicle.get_transform().rotation.yaw/180*np.pi-np.pi/2,
-        #     self.vehicle.get_angular_velocity().z/180*np.pi,  # supposed to be rad/s, but value does make any sense without deg2rad
-        #     np.sqrt(v.x**2 + v.y**2 + v.z**2),
-        #     0
-        # ]]).T
 
     def update_controller(self):
         x0 = self.state
@@ -130,29 +101,30 @@ class MPCNode(CompatibleNode):
             state=x0,
         )
 
-        self.loginfo(f'STATE: {x0[0:2, 0]}')
-        self.loginfo(f'REF:   {ref[0:2, 0]}')
-
         start = perf_counter()
         try:
             control_out, state_horizon = self.mpc.solve(
                 state_vector=x0, reference=ref)
         except Exception as e:
             self.loginfo(f'{e}')
+        self.loginfo(f'Execution time: {perf_counter()-start:0.3} s')
 
         msg = AckermannDrive()
         msg.steering_angle = control_out[0][0]
-        msg.acceleration = 0.0 if self.state[3] > 1.5 else control_out[1][0]
-        msg.speed = state_horizon[3, 1]
+        # NOTE: Currently speed control, because acceleration controller not
+        # set up properly yet.
+        msg.acceleration = 0.0
+        # NOTE: For getting off the line a bit better a small workaround
+        msg.speed = max(state_horizon[3, 1], 2.0) if state_horizon[3, 1] > 0.01 else 0.0
         self.pub_ackermann.publish(msg)
 
         # TODO: WTF, y-axis different to odom and wp's?
         CarlaAPI.draw_debug_line(
             points=state_horizon[0:2, :].T * [1, -1],
             world=self.world,
-            life_time=0.15,
-            location_z=0.1,
-            thickness=0.25,
+            life_time=0.2,
+            location_z=0.20,
+            thickness=0.250,
             color=carla.Color(1, 1, 1, 100)
         )
 
@@ -254,7 +226,7 @@ class MPCNode(CompatibleNode):
         traj = self.make_time_discrete(
             nodes,
             np.array([x_ref, y_ref, s_ref]),
-            v=2, dt=self.SAMPLE_TIME_SECONDS, T=self.TIME_HORIZON+self.SAMPLE_TIME_SECONDS
+            v=vx, dt=self.SAMPLE_TIME_SECONDS, T=self.TIME_HORIZON
         )
 
         return traj[:, 0:2].T, e_y
@@ -267,7 +239,7 @@ class KinematicMPCTracking:
                  time_horizon: float = 2.0) -> None:
         self.dt = step_time
         self.T_hor = time_horizon
-        self.N_hor = int(time_horizon / step_time) + 1
+        self.N_hor = int(time_horizon / step_time)
 
         self.define_nominal_model()
         self.dxdt = self.integration(self.f_nominal)
@@ -335,19 +307,25 @@ class KinematicMPCTracking:
         pos_x, pos_y, vx = X[0, :], X[1, :], X[3, :]
         pos_x_ref, pos_y_ref = ref[0, :], ref[1, :]
 
+        # L = 2.928
+
         # Constraints
         delta_v_max = np.deg2rad(50)
         opti.subject_to(opti.bounded(-delta_v_max, delta_v, delta_v_max))
         opti.subject_to(opti.bounded(-7.0, ax, 3.0))
+        # opti.subject_to(cs.fabs(X[4, :]) <= 2.5)
 
         # Cost function
-        Q = np.diag([100, 100, 0, 1000, 0, 0])
-        R = np.diag([10, 1])
+        Q = np.diag([10, 10, 0, 100, 0, 0])
+        R = np.diag([1000, 1])
+        # P = np.diag([1000, 1000])
+
+        V_MAX = 6
 
         opti.minimize(
             cs.sumsqr(pos_x - pos_x_ref) * Q[0, 0] +
             cs.sumsqr(pos_y - pos_y_ref) * Q[1, 1] +
-            cs.sumsqr(vx - 2) * Q[3, 3] +
+            cs.sumsqr(vx - V_MAX) * Q[3, 3] +
             cs.sumsqr(delta_v) * R[0, 0] +
             cs.sumsqr(ax) * R[1, 1]
         )
@@ -362,7 +340,7 @@ class KinematicMPCTracking:
         opts = {
             'ipopt': {
                 'tol': 1e-10,
-                'max_iter': 200,
+                'max_iter': 300,
                 'print_level': 0,  # remove ipopt disclaimer
                 'sb': 'yes',       # remove ipopt disclaimer
                 'acceptable_tol': 1e-2,
@@ -382,7 +360,7 @@ class KinematicMPCTracking:
 
 
 def main(args=None):
-    """Start basic ROS2 main function `planner` node."""
+    """Start basic ROS2 main function `controller` node."""
     roscomp.init('mpc_controller', args)
 
     controller = None

@@ -247,10 +247,42 @@ class CarlaAPI():
         actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=0.0))
         actor.set_transform(spawn_point)
 
+    @classmethod
+    def pin_spectator(cls,
+                      world: carla.World = None,
+                      pattern: List[str] = ['ego_vehicle']):
+        if not world:
+            world = cls.get_world()
+
+        actor = cls.get_actors(world=world, pattern=pattern)[0]
+
+        try:
+            while True:
+                loc = actor.get_transform().location
+                rot = actor.get_transform().rotation
+
+                offset = -6
+                dx = offset * np.cos(np.deg2rad(rot.yaw))
+                dy = offset * np.sin(np.deg2rad(rot.yaw))
+
+                transform = carla.Transform(
+                    carla.Location(loc.x + dx, loc.y + dy, loc.z + 3),
+                    carla.Rotation(rot.pitch - 15, rot.yaw, rot.roll)
+                )
+
+                world.get_spectator().set_transform(transform)
+
+                sleep(1/120)
+        except KeyboardInterrupt:
+            print("User requested shut down.")
+
 
 if __name__ == "__main__":
     # CarlaAPI.remove_actors(pattern=['ego_vehicle'])
     # CarlaAPI.spawn_vehicle(blueprint='vehicle.audi.etron',
     #                        role_name='ego_vehicle')
     # CarlaAPI.move_to_actor(pattern=['ego_vehicle'])
-    CarlaAPI.respawn_actor()
+
+    # CarlaAPI.respawn_actor()
+
+    CarlaAPI.pin_spectator()

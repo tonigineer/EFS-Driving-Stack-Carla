@@ -96,9 +96,19 @@
             },
         },
         {
+            "label": "pin-spectator",
+            "type": "shell",
+            "command": "clear && python3 -c 'from planner import CarlaAPI; CarlaAPI.pin_spectator()'",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": false
+            },
+        },
+        {
             "label": "start-planner",
             "type": "shell",
-            "command": "clear && ros2 launch planner planner.launch.py host:=$WINDOWS_HOST",
+            "command": "clear && source install/setup.bash && ros2 launch planner planner.launch.py host:=$WINDOWS_HOST",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
@@ -109,7 +119,7 @@
         {
             "label": "open-dashboard",
             "type": "shell",
-            "command": "python3 $WORKSPACE_DIR/scripts/carla/dashboard.py",
+            "command": "clear && source install/setup.bash && ros2 launch dashboard dashboard.launch.py host:=$WINDOWS_HOST",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
@@ -136,7 +146,7 @@
                 "reveal": "always",
                 "revealProblems": "onProblem",
                 "focus": true,
-                "close": true
+                "close": false
             },
         },
         // ===================================================================
@@ -153,7 +163,7 @@
         {
             "label": "start-ackermann-interface",
             "type": "shell",
-            "command": "ros2 launch carla_ackermann_control carla_ackermann_control.launch.py",
+            "command": "clear && source install/setup.bash && ros2 launch carla_ackermann_control carla_ackermann_control.launch.py",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
@@ -164,7 +174,7 @@
         {
             "label": "start-mpc-controller",
             "type": "shell",
-            "command": "ros2 launch controller controller.launch.py",
+            "command": "clear && source install/setup.bash && ros2 launch controller controller.launch.py",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",

@@ -188,7 +188,6 @@ RUN source /opt/ros/foxy/setup.bash \
 
 RUN echo "source /home/${USERNAME}/${ROS_WS}/install/setup.bash" >> ~/.bashrc
 
-
 # Necessary code for Carla-ROS-Bridge from Carla repository
 RUN cd /home/$USERNAME/ \
     && git clone https://github.com/carla-simulator/carla.git Carla
@@ -197,7 +196,11 @@ ARG CARLA_ROOT=/home/$USERNAME/Carla
 ENV CARLA_ROOT=$CARLA_ROOT
 ENV PYTHONPATH=$PYTHONPATH:$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.14.egg:$CARLA_ROOT/PythonAPI/carla
 
-
 # Otherwise, sourcing must be done manually within each
 # terminal that is opened in the Dev Container in VS Code
 RUN echo "source \$WORKSPACE_DIR/install/setup.bash" >> ~/.bashrc
+
+# Parameter file for Ackermann Control of ROS-Bridge
+# - Velocity controller really bad set up
+RUN rm ~/ros2_ws/src/carla_ros_bridge/carla_ackermann_control/config/settings.yaml \
+    $$ ln -s $WORKSPACE_DIR/configs/ackermann_control/settings.yaml ~/ros2_ws/src/carla_ros_bridge/carla_ackermann_control/config/settings.yaml

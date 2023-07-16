@@ -6,9 +6,12 @@ import carla
 import numpy as np
 import pygame as pg
 
+from planner import CarlaAPI
+
 from time import perf_counter, sleep
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, List
+from typing import Callable
 
 
 @dataclass
@@ -36,6 +39,8 @@ class DisplayManager:
 
     Taken from Carla example for `visualization`.
     Small adjustments made though.
+
+    https://www.pygame.org/docs/ref/color_list.html
     """
 
     EXIT_KEYS = [pg.K_ESCAPE, pg.K_q]
@@ -60,7 +65,7 @@ class DisplayManager:
 
     def update_fps(self):
         fps = str(int(self.clock.get_fps()))
-        fps_text = self.font.render(fps, 1, pg.Color("coral"))
+        fps_text = self.font.render(fps, 1, pg.Color("springgreen4"))
         return fps_text
 
     def get_window_size(self):
@@ -82,13 +87,28 @@ class DisplayManager:
     def get_sensor_list(self):
         return self.sensor_list
 
-    def render(self):
+    def render(self, actor_infos: List[str] = None):
+        OFFSET_X = 10
+        OFFSET_Y_NEWLINE = 15
+
         if not self.render_enabled():
             return
+
         for s in self.sensor_list:
             s.render()
 
-        self.display.blit(self.update_fps(), (10, 0))
+        info_surface = pg.Surface((150, 60))
+        info_surface.set_alpha(100)
+        self.display.blit(info_surface, (0, 0))
+
+        self.display.blit(self.update_fps(), (OFFSET_X, 0))
+
+        for i, info in enumerate(actor_infos):
+            self.display.blit(
+                self.font.render(
+                    info, 1, pg.Color("slateblue")
+                ), (OFFSET_X, (i+1) * OFFSET_Y_NEWLINE)
+            )
 
         pg.display.flip()
         self.clock.tick(self.MAX_FPS)
@@ -177,59 +197,48 @@ class SensorManager:
         self.sensor.destroy()
 
 
-class CarlaApi:
+class Dashboard:
 
-    HOST = os.environ.get("WINDOWS_HOST")
-    PORT = 2000
-    TIMEOUT = 10.0
+    actor: carla.Actor
+    actor_callback: Callable
 
-    def __init__(self):
-        self.client = self.connect()
+    # NOTE Image sizes must be a multiple of 64, due to a bug.
+    # https://github.com/carla-simulator/carla/issues/6085
+    height: int
 
-    @classmethod
-    def connect(cls) -> carla.Client:
-        client = carla.Client(cls.HOST, cls.PORT)
-        client.set_timeout(cls.TIMEOUT)
-        return client
+    world: carla.World
 
-    def get_actor(self, role_name) -> carla.Actor:
-        world = self.client.get_world()
-        world.wait_for_tick()  # needed, so that the actors are present
-        actors = world.get_actors()
+    def __init__(self,
+                 actor: carla.Actor,
+                 actor_callback: Callable = None,
+                 height: int = 256,
+                 world: carla.World = None):
+        self.actor = actor
+        self.actor_callback = actor_callback
 
-        if len(actors) == 0:
-            raise ValueError('Actors were not populated in time or at all.')
+        self.height = height
 
-        for actor in actors:
-            # print(actor.attribut)
-            if actor.attributes.get('role_name') == role_name:
-                return actor
-        raise ValueError(f'Could not get actor with role-name=`{role_name}`')
+        self.world = world if world else CarlaAPI.get_world()
 
+        # TODO: Implemented interface to change setup.
+        self.sensory = [
+            SensorSetup(actor, "RGBCamera", (0, 0, 10), (0, -90, 0)),
+            SensorSetup(actor, "RGBCamera", (-5, 0, 3.5), (0, -10, 0)),
+            # SensorSetup(actor, "RGBCamera", (-1, 2, 2.4), (0, -8, -30)),
+        ]
 
-class Monitor:
+        self.create_display_manager()
 
-    HOST = os.environ.get("windows_host")
-    PORT = 2000
-    TIMEOUT = 2.0
-
-    # TYPE_ID_RABIT = "vehicle.audi.a2"
-    # TYPE_ID_FOX = "vehicle.audi.etron"
-
-    def __init__(self):
-        self.world = CarlaApi.connect().get_world()
-
-    def initiate_monitor(self, sensory: SensorSetup,
-                         disp_size):
-
-        display_manager = DisplayManager(
-            grid_size=[1, len(sensory)],
-            window_size=disp_size
+    def create_display_manager(self):
+        """Create display manager for actor with sensory setup."""
+        self.display_manager = DisplayManager(
+            grid_size=[1, len(self.sensory)],
+            window_size=[self.height*len(self.sensory), self.height]
         )
 
-        for idx, sensor in enumerate(sensory):
+        for idx, sensor in enumerate(self.sensory):
             SensorManager(
-                self.world, display_manager, sensor.sensor_type,
+                self.world, self.display_manager, sensor.sensor_type,
                 carla.Transform(
                     carla.Location(
                         x=sensor.x, y=sensor.y, z=sensor.z
@@ -240,39 +249,38 @@ class Monitor:
                 ), sensor.actor, {}, display_pos=[0, idx]
             )
 
+    def start(self):
+        """Start Dashboard loop to render camera and info data."""
         try:
             while True:
-                display_manager.render()
-                if display_manager.check_events():
+                self.display_manager.render(
+                    actor_infos=self.actor_callback()
+                )
+                if self.display_manager.check_events():
                     break
         finally:
-            display_manager.destroy()
+            self.display_manager.destroy()
 
-    def show(self):
-        ca = CarlaApi()
-
-        # NOTE Image sizes must be a multiple of 64, due to a bug.
-        # https://github.com/carla-simulator/carla/issues/6085
-        HEIGHT = 256
-
-        # Settings for Monitor
-        if len(sys.argv) > 1:
-            raise NotImplementedError('implement now!')
-        else:
-            vehicle_id = ca.get_actor('ego_vehicle')
-
-        sensory = [
-            SensorSetup(vehicle_id, "RGBCamera", (0, 0, 10), (0, -90, 0)),
-            SensorSetup(vehicle_id, "RGBCamera", (-4, 0, 2.4), (0, -8, 0)),
-            SensorSetup(vehicle_id, "RGBCamera", (-1, 2, 2.4), (0, -8, -30)),
-        ]
-
-        self.initiate_monitor(sensory, disp_size=[HEIGHT*len(sensory), HEIGHT])
+    def render_manually(self):
+        self.display_manager.render(
+            actor_infos=self.actor_callback()
+        )
 
 
 def main():
-    monitor = Monitor()
-    monitor.show()
+    """Entry point for example."""
+    actor = CarlaAPI.get_actors(pattern=['ego_vehicle'])[0]
+
+    def _callback_info_text():
+        """Exemplary callback for actor information."""
+        return ['line 1', 'line 2']
+
+    dashboard = Dashboard(
+        actor=actor,
+        actor_callback=_callback_info_text
+    )
+
+    dashboard.start()
 
 
 if __name__ == "__main__":
