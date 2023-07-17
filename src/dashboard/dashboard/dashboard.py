@@ -4,6 +4,7 @@ from typing import List
 
 from planner import CarlaAPI
 from dashboard import Dashboard
+from messages.msg import StatusMPC
 
 from ros_compatibility.node import CompatibleNode
 import ros_compatibility as roscomp
@@ -18,6 +19,7 @@ class DashboardNode(CompatibleNode):
 
     odometry = None
     ackermann = None
+    status_mpc = None
 
     world = CarlaAPI.get_world()
 
@@ -47,22 +49,35 @@ class DashboardNode(CompatibleNode):
             self._callback_ackermann, 10
         )
 
+        self.sub_status_mpc = self.create_subscription(
+            StatusMPC, f'/carla/{self.role_name}/status_mpc',
+            self._callback_status_mpc, 10
+        )
+
     def _callback_odometry(self, msg):
-        # self.loginfo('Odometry received')
         self.odometry = msg
 
     def _callback_ackermann(self, msg):
-        # NOTE: this message is published by the controller
         self.ackermann = msg
+
+    def _callback_status_mpc(self, msg):
+        self.status_mpc = msg
 
     def _actor_callback(self) -> List[str]:
         infos = []
 
-        if not self.odometry or not self.ackermann:
+        if not self.odometry or not self.ackermann or not self.status_mpc:
             return infos
 
-        infos.append(f'vx: {self.odometry.twist.twist.linear.x:0.2f} m/s')
-        infos.append(f'vx: {self.ackermann.speed:0.2f} m/s')
+        infos.append(
+            f'vx_ego: {np.abs(self.odometry.twist.twist.linear.x):0.2f}   m/s')
+        infos.append(
+            f'vx_set: {self.ackermann.speed:0.2f}   m/s')
+        infos.append(f'')
+        infos.append(
+            f'delta_y: {self.status_mpc.lateral_deviation:0.2f}  m')
+        infos.append(
+            f't_exec : {self.status_mpc.execution_time:0.3f} s')
 
         return infos
 

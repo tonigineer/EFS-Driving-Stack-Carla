@@ -47,6 +47,16 @@
                     "description": "Spawn \"Audi Etron\" as \"ego-vehicle\" (destroy if exists)"
                 },
                 {
+                "label": "$(breakpoints-remove-all) Remove Actors",
+                    "task": "remove-actor",
+                    "description": "Remove all \"ego-vehicle\" roles (Sometimes the Carla-ROS-Bridge does not remove their spawned actors)"
+                },
+                {
+                    "label": "$(compass) Start Planner",
+                    "task": "start-planner",
+                    "description": "Random route with path and reference messages for actor \"ego-vehicle\""
+                },
+                {
                     "label": "$(telescope) Move to Actor",
                     "task": "move-to-actor",
                     "description": "Move to Actor \"ego-vehicle\""
@@ -57,19 +67,9 @@
                     "description": "Pin Spectator to Actor \"ego-vehicle\" (i.e.: follow vehicle in main window)"
                 },
                 {
-                "label": "$(breakpoints-remove-all) Remove Actors",
-                    "task": "remove-actor",
-                    "description": "Remove all \"ego-vehicle\" roles (Sometimes the Carla-ROS-Bridge does not remove their spawned actors)"
-                },
-                {
                     "label": "$(dashboard) Open Dashboard",
                     "task": "open-dashboard",
                     "description": "Open dashboard for actor \"ego-vehicle\" with two cameras"
-                },
-                {
-                    "label": "$(compass) Start Planner",
-                    "task": "start-planner",
-                    "description": "Random route with path and reference messages for actor \"ego-vehicle\""
                 },
                 {
                     "label": "$(debug-reverse-continue) Respawn Actor",

@@ -54,7 +54,7 @@ class DisplayManager:
         pg.font.init()
 
         self.clock = pg.time.Clock()
-        self.font = pg.font.SysFont("Arial", 18)
+        self.font = pg.font.SysFont("FreeMono, Monospace", 18)
 
         self.display = pg.display.set_mode(
             window_size, pg.HWSURFACE | pg.DOUBLEBUF
@@ -64,7 +64,7 @@ class DisplayManager:
         self.window_size = window_size
 
     def update_fps(self):
-        fps = str(int(self.clock.get_fps()))
+        fps = f'FPS: {int(self.clock.get_fps())}'
         fps_text = self.font.render(fps, 1, pg.Color("springgreen4"))
         return fps_text
 
@@ -97,8 +97,8 @@ class DisplayManager:
         for s in self.sensor_list:
             s.render()
 
-        info_surface = pg.Surface((150, 60))
-        info_surface.set_alpha(100)
+        info_surface = pg.Surface((210, 110))
+        info_surface.set_alpha(150)
         self.display.blit(info_surface, (0, 0))
 
         self.display.blit(self.update_fps(), (OFFSET_X, 0))
@@ -106,7 +106,7 @@ class DisplayManager:
         for i, info in enumerate(actor_infos):
             self.display.blit(
                 self.font.render(
-                    info, 1, pg.Color("slateblue")
+                    info, 1, pg.Color("darkorange2")
                 ), (OFFSET_X, (i+1) * OFFSET_Y_NEWLINE)
             )
 

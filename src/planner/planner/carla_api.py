@@ -272,7 +272,7 @@ class CarlaAPI():
 
                 world.get_spectator().set_transform(transform)
 
-                sleep(1/120)
+                sleep(0.05)
         except KeyboardInterrupt:
             print("User requested shut down.")
 

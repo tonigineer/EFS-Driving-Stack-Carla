@@ -57,5 +57,6 @@
                 "spencerwmiles.vscode-task-buttons"
             ]
         }
-    }
+    },
+    "postStartCommand": "scripts/symlink_ackermann_config.sh"
 }

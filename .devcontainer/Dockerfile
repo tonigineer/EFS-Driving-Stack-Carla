@@ -179,6 +179,7 @@ RUN cd /home/$USERNAME/$ROS_WS \
 ###########################################
 #   Post install stuff
 ###########################################
+FROM carla as efs
 WORKDIR /home/$USERNAME/$ROS_WS
 
 SHELL [ "/bin/bash", "-c"]
@@ -200,7 +201,5 @@ ENV PYTHONPATH=$PYTHONPATH:$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.14.egg:$CA
 # terminal that is opened in the Dev Container in VS Code
 RUN echo "source \$WORKSPACE_DIR/install/setup.bash" >> ~/.bashrc
 
-# Parameter file for Ackermann Control of ROS-Bridge
-# - Velocity controller really bad set up
-RUN rm ~/ros2_ws/src/carla_ros_bridge/carla_ackermann_control/config/settings.yaml \
-    $$ ln -s $WORKSPACE_DIR/configs/ackermann_control/settings.yaml ~/ros2_ws/src/carla_ros_bridge/carla_ackermann_control/config/settings.yaml
+# Dependencies of controller packages
+RUN python3 -m pip install casadi

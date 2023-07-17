@@ -7,6 +7,8 @@
   <maintainer email="toni.lubiniecki@efs-techhub.com">ros</maintainer>
   <license>TODO: License declaration</license>
 
+  <depend>messages</depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>

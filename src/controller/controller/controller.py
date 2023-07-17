@@ -5,9 +5,9 @@ import casadi.tools as ct
 from time import perf_counter, sleep
 
 from planner import CarlaAPI
+from messages.msg import StatusMPC
 
 from transforms3d.euler import quat2euler
-from tf_transformations import quaternion_from_euler
 
 from ros_compatibility.node import CompatibleNode
 import ros_compatibility as roscomp
@@ -65,6 +65,9 @@ class MPCNode(CompatibleNode):
         self.pub_ackermann = self.create_publisher(
             AckermannDrive, f'/carla/{self.role_name}/ackermann_cmd', 10
         )
+        self.pub_status_mpc = self.create_publisher(
+            StatusMPC, f'/carla/{self.role_name}/status_mpc', 10
+        )
 
     def _callback_odometry(self, msg):
         _, _, yaw = quat2euler([
@@ -107,8 +110,14 @@ class MPCNode(CompatibleNode):
                 state_vector=x0, reference=ref)
         except Exception as e:
             self.loginfo(f'{e}')
-        self.loginfo(f'Execution time: {perf_counter()-start:0.3} s')
 
+        # Status of MPC
+        msg = StatusMPC()
+        msg.lateral_deviation = float(ey)
+        msg.execution_time = perf_counter() - start
+        self.pub_status_mpc.publish(msg)
+
+        # Vehicle control interface
         msg = AckermannDrive()
         msg.steering_angle = control_out[0][0]
         # NOTE: Currently speed control, because acceleration controller not
