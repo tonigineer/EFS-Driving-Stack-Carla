@@ -1,5 +1,9 @@
 # Carla-ROS-Framework
 
+First steps to a simulation environement with [Carla](https://carla.org/) and [ROS2](https://docs.ros.org/en/rolling/index.html).
+
+![Short demo of path tracking vehicle](./assets/demo.gif)
+
 ## Installation
 
 Within your [WLS](https://learn.microsoft.com/en-us/windows/wsl/setup/environment) command-line interface, clone the [repository](https://bitbucket.efs-techhub.com/scm/at01447/carla_simulation_pipeline.git) and open a remove session with [Visual Studio Code](https://code.visualstudio.com/):
@@ -22,16 +26,24 @@ Within **Windows**, you need to install [Carla](https://github.com/carla-simulat
 
 This section contains all the steps to get an *exemplary* simulation running.
 
-- [x] Start `CarlaUE4.exe` within **Windows**
+### Start Carla within Windows
 
-    You can specify the *resolution* and *quality* if needed with `-ResX=200 -ResY=100 --quality-level=Low`
+Start the `CarlaUE4.exe`. You can specify the *resolution* and *quality* if needed with `-ResX=200 -ResY=100 --quality-level=Low`
 
-- [x] Start all necessary tasks from the [ROS/ROS2 bridge for CARLA simulator](https://github.com/carla-simulator/ros-bridge) and this [Repository](README.md)
+### Start all necessary tasks from the ROS/ROS2 bridge for CARLA simulator and this Repository
 
-    With the building of the [devcontainer](.devcontainer/devcontainer.json), a plugin called [Task Buttons](https://marketplace.visualstudio.com/items?itemName=spencerwmiles.vscode-task-buttons) was installed. This plugin adds buttons for configurable tasks to the **status bar** at the bottom of [Visual Studio Code](https://code.visualstudio.com/).
+With the building of the [devcontainer](.devcontainer/devcontainer.json), a plugin called [Task Buttons](https://marketplace.visualstudio.com/items?itemName=spencerwmiles.vscode-task-buttons) was installed. This plugin adds buttons for configurable tasks to the **status bar** at the bottom of [Visual Studio Code](https://code.visualstudio.com/).
 
-    1. `Carla-ROS-Bridge` - Kinda selfexplanatory - but in case, [there](https://github.com/carla-simulator/ros-bridge/blob/master/README.md) you go
-    2. `Set-Up-Scenario` - Place all Actors with Sensory according to selected [configuration](configs/scenarios/follow_route.json)
-    3. `Goto ego` - Move the [spectator](https://carla.readthedocs.io/en/latest/tuto_G_getting_started/#the-spectator) (main Carla window) to the [actor](https://carla.readthedocs.io/en/latest/core_actors/) with the role name `ego_vehicle`
-    4. `Dashboard` - Start a dashboard, that uses RGB-Cameras around the vehicle to show different angles
-    5. `Start planner` - Start the [planner](src/planner/planner/planner.py) to generate a random [route](https://github.com/carla-simulator/ros-bridge/blob/master/carla_waypoint_publisher/src/carla_waypoint_publisher/carla_waypoint_publisher.py) and publish a [reference]() for the controller
+![task-buttons statusbar](./assets/task-buttons-statusbar.png)
+
+- **Re-Build** - Remove all build folders and [build](https://docs.ros.org/en/eloquent/Installation/Linux-Development-Setup.html) packages
+- **Carla-ROS-Bridge** - Start [Carla-ROS-Bridge](https://github.com/carla-simulator/ros-bridge)
+- **Prepare senarico** - Load a [Map](https://carla.readthedocs.io/en/latest/core_map/) and spawn the [Actors](https://carla.readthedocs.io/en/latest/core_actors/) for the *scenario*
+- **Ready scenario** - Start the [Planner](src/planner), move the [Spectator](https://carla.readthedocs.io/en/latest/tuto_G_getting_started/#the-spectator) to the *ego_vehicle* and start the [Dashboard](src/dashboard/)
+- **Start scenario** - Start the [Model-Predictive-Controller](src/controller/) with the [Ackermann-Interface](https://carla.readthedocs.io/projects/ros-bridge/en/latest/carla_ackermann_control/) from the [Carla-ROS-Bridge](https://github.com/carla-simulator/ros-bridge)
+
+> Currently, all tasks are **hardcoded** for single *scenario* with the same *vehicle*.
+
+All tasks, that are called via the *collective tasks* mentioned above, can be called separately via the **All tasks** task-button:
+
+![task-buttons statusbar](./assets/task-buttons-all-tasks.png)
