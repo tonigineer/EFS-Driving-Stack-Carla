@@ -1,5 +1,6 @@
 import carla
 import numpy as np
+import pygame as pg
 from typing import List
 
 from planner import CarlaAPI

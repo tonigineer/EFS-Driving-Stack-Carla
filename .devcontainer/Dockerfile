@@ -158,10 +158,10 @@ FROM full as carla
 ARG USERNAME=ros
 ARG ROS_WS=ros2_ws
 
-RUN mkdir -p /home/$USERNAME
-RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
+# RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
 
 USER $USERNAME
+ENV HOME /home/$USERNAME
 
 RUN mkdir -p /home/$USERNAME/$ROS_WS/src \
     && cd /home/$USERNAME/$ROS_WS \

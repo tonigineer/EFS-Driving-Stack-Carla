@@ -2,7 +2,7 @@
 //{BLUEPRINT_X} will be replaced by setup script 
 {
     "dockerFile": "Dockerfile",
-    "initializeCommand": "scripts/get_windows_host.sh",
+    "initializeCommand": "scripts/get_host_ip_address.sh",
     "build": {
         "args": {
             "WORKSPACE": "${containerWorkspaceFolder}",
@@ -16,45 +16,51 @@
         "--privileged",
         "--network=host",
         "--env-file","./.devcontainer/env",
+        // "-e", "DISPLAY=:0",
+        // "-e", "XAUTHORITY=/tmp/.Xauthority",
+        // "-v", "${localEnv:HOME}/.Xauthority:/tmp/.Xauthority"
         //"--cap-add=SYS_PTRACE",
         //"--security-opt=seccomp:unconfined",
         //"--security-opt=apparmor:unconfined",
         // "-v", "/tmp/.X11-unix:/tmp/.X11-unix:rw",
-        "-v", "//mnt/c/:/mnt/c/:rw",
+        "-v", "/home/toni/Downloads:/mnt/home/toni/Downloads:rw",
+        // "-v", "//mnt/c/:/mnt/c/:rw",
         //"-v", "/mnt/wslg:/mnt/wslg",
         //"-v", "/usr/lib/wsl:/usr/lib/wsl",
         //"--device=/dev/dxg",
         //vehicle volume mount would be in this line
-        "--ipc=host"
+        "--ipc=host",
         //"--runtime=nvidia",
         //"--gpus", "all",
-        //"-e NVIDIA_DRIVER_CAPABILITIES=all",
-        //"-e", "WAYLAND_DISPLAY=$WAYLAND_DISPLAY",
-        //"-e", "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR",
-        //"-e", "PULSE_SERVER=$PULSE_SERVER",
-        //"-e", "LD_LIBRARY_PATH=/usr/lib/wsl/lib"
+        // "-e NVIDIA_DRIVER_CAPABILITIES=all",
+        // "-e", "WAYLAND_DISPLAY=$WAYLAND_DISPLAY",
+        // "-e", "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR",
+        // "-e", "PULSE_SERVER=$PULSE_SERVER",
+        "-e", "LD_LIBRARY_PATH=/usr/lib/wsl/lib"
     ],
     "containerEnv": {
-        "WORKSPACE_DIR": "${containerWorkspaceFolder}"
-        // "DISPLAY": ":0"
-        //"${localEnv:DISPLAY}", // Needed for GUI try ":0" for windows
-        //"WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
-        //"XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}",
-        //"PULSE_SERVER": "${localEnv:PULSE_SERVER}",
-        //"LIBGL_ALWAYS_SOFTWARE": "1" // Needed for software rendering of opengl
+        "WORKSPACE_DIR": "${containerWorkspaceFolder}",
+        // "DISPLAY": "192.168.178.100$DISPLAY"
+        // "DISPLAY": "${localEnv:DISPLAY}",
+        // "DOCKER_NET_ADDRESS": "172.17.0.1"  // https://www.baeldung.com/linux/docker-connecting-containers-to-host
+        // "DISPLAY": "unix:0"
+        // "DISPLAY": "${localEnv:DISPLAY}", // Needed for GUI try ":0" for windows
+        // "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
+        // "XDG_RUNTIME_DIR": "${localEnv:XDG_RUNTIME_DIR}",
+        // "PULSE_SERVER": "${localEnv:PULSE_SERVER}",
+        "LIBGL_ALWAYS_SOFTWARE": "1" // Needed for software rendering of opengl
     },
-    
+    // "remoteEnv": {
+    //     "DOCKER_BUILDKIT": "0", 
+    // },
     "customizations": {
         "vscode": {
             "extensions": [
-                "microsoft.vscode-docker",
-                "ms-azuretools.vscode-docker",
                 "ms-python.python",
                 "ms-vscode.cpptools",
-                "ms-vscode.remote-repositories",
                 "mhutchie.git-graph",
-                "ms-iot.vscode-ros",
-                "spencerwmiles.vscode-task-buttons"
+                "spencerwmiles.vscode-task-buttons",
+                "ms-azuretools.vscode-docker"
             ]
         }
     },

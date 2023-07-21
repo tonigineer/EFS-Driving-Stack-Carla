@@ -211,7 +211,7 @@ class Dashboard:
     def __init__(self,
                  actor: carla.Actor,
                  actor_callback: Callable = None,
-                 height: int = 256,
+                 height: int = 768,
                  world: carla.World = None):
         self.actor = actor
         self.actor_callback = actor_callback
@@ -253,15 +253,25 @@ class Dashboard:
         """Start Dashboard loop to render camera and info data."""
         try:
             while True:
+                for event in pg.event.get():
+                    if event.type == pg.QUIT:
+                        break
                 self.display_manager.render(
                     actor_infos=self.actor_callback()
                 )
                 if self.display_manager.check_events():
                     break
+                print('as')
         finally:
             self.display_manager.destroy()
 
     def render_manually(self):
+        # NOTE: Checking events is needed, otherwise Pygame
+        # shows `not responding error` while still working.
+        # Only got this error on my Ubuntu-22.04 so far.
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                break
         self.display_manager.render(
             actor_infos=self.actor_callback()
         )

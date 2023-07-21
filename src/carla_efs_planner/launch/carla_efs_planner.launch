@@ -1,0 +1,9 @@
+<!-- -->
+<launch>
+  <arg name="role_name" default="ego_vehicle" />
+
+  <node pkg="carla_efs_planner" type="carla_efs_planner.py" name="carla_efs_planner" output="screen">
+    <param name="role_name" value="$(arg role_name)" />
+  </node>
+
+</launch>

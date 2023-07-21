@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 """A collection of Carla functionality as classmethods.
 
 NOTE: The goal of this class it to provide a wide variey of
@@ -7,7 +5,7 @@ functionality to ROS Nodes as well as scripts. The design
 decisions aim to achieve the following:
     - provide functionality without instantiating, e.g.:
       for one-liner commands or short scripts
-    - get the number of connections as low as possible,
+    - keep the number of connections as low as possible,
       when used within a node repeatedly (provide already
       connected client to function)
 """
@@ -16,15 +14,11 @@ import os
 import re
 import carla
 import numpy as np
-from typing import Dict, List
+from typing import List
 from random import choice
 from time import sleep
 
-from carla_msgs.msg import CarlaStatus
-
-from ros_compatibility.exceptions import ROSException
 from ros_compatibility import loginfo, logerr, logwarn
-from rclpy.node import Node
 
 
 class CarlaAPI():
@@ -33,49 +27,16 @@ class CarlaAPI():
     port = 2000
     timeout = 15
 
-    @classmethod
-    def get_client(cls) -> carla.Client:
-        try:
-            carla_client = carla.Client(host=cls.host, port=cls.port)
-            carla_client.set_timeout(cls.timeout)
-        except RuntimeError as e:
-            logerr(f'Error while connecting to Carla: {e}')
-            raise e
-
-        loginfo("CARLA_API: Connected to Carla.")
-
-        return carla_client
-
-    @classmethod
-    def get_world(cls, client=None) -> carla.World:
-        if not client:
-            client = cls.get_client()
-
-        world = client.get_world()
-        world.wait_for_tick()  # needed, so that actors are present
-        loginfo("CARLA_API: Got world")
-        return world
-
-    @classmethod
-    def get_actors(cls,
-                   world=None,
-                   type_id=None,
-                   role_name=None) -> List[carla.Actor]:
-        if not world:
-            world = cls.get_world()
-
-        actors = []
-        for actor in world.get_actors():
-            if actor.type_id == type_id or \
-               actor.attributes.get("role_name") == role_name:
-                loginfo(f'CARLA_API: Matched {actor}')
-                actors.append(actor)
-
-        if not actors:
-            raise LookupError(f'No actor found with `type_id`: {type_id}' +
-                              f'or `role_name`: {role_name}')
-
-        return actors
+    @staticmethod
+    def convert_waypoints_to_array(waypoints: List[carla.Waypoint]
+                                   ) -> np.ndarray:
+        """Convert waypoints to array with x-y coordinates."""
+        return np.array(
+            [
+                [wp[0].transform.location.x, wp[0].transform.location.y]
+                for wp in waypoints
+            ]
+        )
 
     @classmethod
     def draw_debug_line(cls,
@@ -105,35 +66,6 @@ class CarlaAPI():
                 color=color
             )
 
-    @staticmethod
-    def convert_waypoints_to_array(waypoints: List[carla.Waypoint]
-                                   ) -> np.ndarray:
-        """Convert waypoints to array with x-y coordinates."""
-        return np.array(
-            [
-                [wp[0].transform.location.x, wp[0].transform.location.y]
-                for wp in waypoints
-            ]
-        )
-
-    @classmethod
-    def set_delta_seconds(cls, world: carla.World = None,
-                          fps: int = 60) -> None:
-        """Set server sample time."""
-        if not world:
-            world = cls.get_world()
-
-        settings = world.get_settings()
-
-        settings.fixed_delta_seconds = 1/fps
-        settings.synchronous_mode = False
-
-        world.apply_settings(settings)
-
-        print(
-            f'CARLA_API: fixed_delta_seconds = {settings.fixed_delta_seconds}'
-        )
-
     @classmethod
     def get_actors(cls, pattern: List[str],
                    world: carla.World = None) -> List[carla.Actor]:
@@ -159,14 +91,27 @@ class CarlaAPI():
         return actors
 
     @classmethod
-    def remove_actors(cls,
-                      pattern: List[str],
-                      world: carla.World = None) -> None:
-        """Remove actors with matching pattern."""
-        actors = cls.get_actors(pattern=pattern, world=world)
-        for actor in actors:
-            loginfo(f'Removed actor: {actor}')
-            actor.destroy()
+    def get_client(cls) -> carla.Client:
+        try:
+            carla_client = carla.Client(host=cls.host, port=cls.port)
+            carla_client.set_timeout(cls.timeout)
+        except RuntimeError as e:
+            logerr(f'Error while connecting to Carla: {e}')
+            raise e
+
+        loginfo("CARLA_API: Connected to Carla.")
+
+        return carla_client
+
+    @classmethod
+    def get_world(cls, client=None) -> carla.World:
+        if not client:
+            client = cls.get_client()
+
+        world = client.get_world()
+        world.wait_for_tick()  # needed, so that actors are present
+        loginfo("CARLA_API: Got world")
+        return world
 
     @classmethod
     def move_to_actor(cls, pattern, world: carla.World = None) -> None:
@@ -198,56 +143,6 @@ class CarlaAPI():
         world.get_spectator().set_transform(transform)
 
     @classmethod
-    def spawn_vehicle(cls, blueprint: str = 'etron',
-                      role_name: str = 'ego_vehicle',
-                      spawn_point: carla.Transform = None,
-                      world: carla.World = None):
-        if not world:
-            world = cls.get_world()
-
-        if not spawn_point:
-            spawn_point = choice(world.get_map().get_spawn_points())
-
-        bp_lib = world.get_blueprint_library()
-        vehicle_bp = bp_lib.filter(blueprint)[0]
-        vehicle_bp.set_attribute('role_name', role_name)
-
-        vehilce = world.try_spawn_actor(vehicle_bp, spawn_point)
-
-    @classmethod
-    def print_all_actors(cls,
-                         world: carla.World = None):
-        if not world:
-            world = cls.get_world()
-
-        for actor in world.get_actors():
-            print(actor)
-
-    @classmethod
-    def respawn_actor(cls,
-                      world: carla.World = None,
-                      role_name: str = 'ego_vehicle'):
-        if not world:
-            world = cls.get_world()
-
-        actors = cls.get_actors(world=world, pattern=[role_name])
-        actor = actors[0]
-
-        # TODO: Quite inelegant to use a file, but otherwise a node
-        # needs to be set up to get the information from ROS topic's.
-        with open(f'./log/PLANNER_SPAWN_POINT_{role_name}') as f:
-            line = f.readlines()[0]
-        numbers = re.findall(r"[-+]?(?:\d*\.*\d+)", line)
-
-        spawn_point = carla.Transform(
-            carla.Location(*map(float, numbers[0:3])),
-            carla.Rotation(*map(float, numbers[3:6]))
-        )
-        actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0))
-        actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=0.0))
-        actor.set_transform(spawn_point)
-
-    @classmethod
     def pin_spectator(cls,
                       world: carla.World = None,
                       pattern: List[str] = ['ego_vehicle']):
@@ -276,6 +171,106 @@ class CarlaAPI():
         except KeyboardInterrupt:
             print("User requested shut down.")
 
+    @classmethod
+    def print_all_actors(cls,
+                         world: carla.World = None):
+        if not world:
+            world = cls.get_world()
+
+        for actor in world.get_actors():
+            print(actor)
+
+    @classmethod
+    def remove_actors(cls,
+                      pattern: List[str],
+                      world: carla.World = None) -> None:
+        """Remove actors with matching pattern."""
+        actors = cls.get_actors(pattern=pattern, world=world)
+        for actor in actors:
+            loginfo(f'Removed actor: {actor}')
+            actor.destroy()
+
+    @classmethod
+    def respawn_actor(cls,
+                      world: carla.World = None,
+                      role_name: str = 'ego_vehicle'):
+        if not world:
+            world = cls.get_world()
+
+        actors = cls.get_actors(world=world, pattern=[role_name])
+        actor = actors[0]
+
+        # TODO: Quite inelegant to use a file, but otherwise a node
+        # needs to be set up to get the information from ROS topic's.
+        with open(f'./log/PLANNER_SPAWN_POINT_{role_name}') as f:
+            line = f.readlines()[0]
+        numbers = re.findall(r"[-+]?(?:\d*\.*\d+)", line)
+
+        spawn_point = carla.Transform(
+            carla.Location(*map(float, numbers[0:3])),
+            carla.Rotation(*map(float, numbers[3:6]))
+        )
+        actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=1.0))
+        actor.apply_control(carla.VehicleControl(throttle=0.0, steer=0.0, brake=0.0))
+        actor.set_transform(spawn_point)
+
+    @classmethod
+    def set_delta_seconds(cls, world: carla.World = None,
+                          fps: int = 60) -> None:
+        """Set server sample time."""
+        if not world:
+            world = cls.get_world()
+
+        settings = world.get_settings()
+
+        settings.fixed_delta_seconds = 1/fps
+        settings.synchronous_mode = False
+
+        world.apply_settings(settings)
+
+        print(
+            f'CARLA_API: fixed_delta_seconds = {settings.fixed_delta_seconds}'
+        )
+
+    @classmethod
+    def spawn_vehicle(cls, blueprint: str = 'etron',
+                      role_name: str = 'ego_vehicle',
+                      spawn_point: carla.Transform = None,
+                      world: carla.World = None):
+        if not world:
+            world = cls.get_world()
+
+        if not spawn_point:
+            spawn_point = choice(world.get_map().get_spawn_points())
+
+        bp_lib = world.get_blueprint_library()
+        vehicle_bp = bp_lib.filter(blueprint)[0]
+        vehicle_bp.set_attribute('role_name', role_name)
+
+        vehilce = world.try_spawn_actor(vehicle_bp, spawn_point)
+
+    @classmethod
+    def spectator_overview(cls,
+                           world: carla.World = None):
+        if not world:
+            world = cls.get_world()
+
+        map_name = world.get_map().name
+
+        OVERVIEWS = {
+            'Carla/Maps/Town10HD_Opt': carla.Transform(
+                carla.Location(x=11.546658, y=40.263840, z=168.203491),
+                carla.Rotation(pitch=-88.999062, yaw=-89.886024, roll=0.005767)
+            )
+        }
+
+        if map_name in OVERVIEWS.keys():
+            spectator = world.get_spectator()
+            spectator.set_transform(OVERVIEWS[map_name])
+            return
+
+        logwarn(f'No overview transformation defined for map: {map_name}')
+
 
 if __name__ == "__main__":
     # CarlaAPI.remove_actors(pattern=['ego_vehicle'])
@@ -283,6 +278,9 @@ if __name__ == "__main__":
     #                        role_name='ego_vehicle')
     # CarlaAPI.move_to_actor(pattern=['ego_vehicle'])
 
-    CarlaAPI.respawn_actor()
+    # CarlaAPI.respawn_actor()
 
     # CarlaAPI.pin_spectator()
+
+    CarlaAPI.spectator_overview()
+

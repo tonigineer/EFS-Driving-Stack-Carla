@@ -8,20 +8,20 @@
             "task": "re-build",
             "tooltip": "🧹🛠️ Start the \"re-build\" task"
         },
+        // {
+        //     "label": "$(comments-view-icon) Carla-ROS-Bridge",
+        //     "task": "carla-ros-bridge",
+        //     "tooltip": "🌉 Start the \"carla-ros-bridge\""
+        // },
         {
-            "label": "$(comments-view-icon) Carla-ROS-Bridge",
-            "task": "carla-ros-bridge",
-            "tooltip": "🌉 Start the \"carla-ros-bridge\""
+            "label": "$(location) Prepare scenario",
+            "task": "prepare-scenario",
+            "tooltip": "🗺️ Load \"Map\", spawn \"Actors\" and start \"Planner\""
         },
         {
-            "label": "$(ports-open-browser-icon) Prepare scenario",
-            "task": "set-up-scenario",
-            "tooltip": "🗺️ Load \"Map\" and spawn \"Actors\""
-        },
-        {
-            "label": "$(location) Ready scenario",
-            "task": "ready-scenario",
-            "tooltip": "🎬 Start \"Planner\" and open \"Dashboard\""
+            "label": "$(location) Start debugging",
+            "task": "start-debugging",
+            "tooltip": "🎬 Start \"Painter\" and open \"Dashboard\""
         },
         {
             "label": "$(notebook-execute-all) Start scenario",

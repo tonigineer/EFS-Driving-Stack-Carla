@@ -32,17 +32,17 @@
             "dependsOrder": "sequence",
             "dependsOn": ["clean", "build"]
         },
-        {
-            "label": "carla-ros-bridge",
-            "type": "shell",
-            "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$WINDOWS_HOST timeout:=10 synchronous_mode_wait_for_vehicle_control_command:=False fixed_delta_seconds:=0.05 use_sim_time:=True passive:=True",
-            "presentation": {
-                "reveal": "always",
-                "revealProblems": "onProblem",
-                "focus": true,
-                "close": false
-            }
-        },
+        // {
+        //     "label": "carla-ros-bridge",
+        //     "type": "shell",
+        //     "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$HOST_IP_ADDRESS timeout:=10 synchronous_mode_wait_for_vehicle_control_command:=False fixed_delta_seconds:=0.05 use_sim_time:=True passive:=True",
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "revealProblems": "onProblem",
+        //         "focus": true,
+        //         "close": false
+        //     }
+        // },
         // ===================================================================
         //                      Set up Scenario
         // ===================================================================
@@ -51,12 +51,13 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "spawn-actor",
+                "start-planner",
             ]
         },
         {
             "label": "spawn-actor",
             "type": "shell",
-            "command": "clear && source install/setup.bash && ros2 launch carla_spawn_objects carla_spawn_objects.launch.py objects_definition_file:=$WORKSPACE_DIR/configs/scenarios/follow_route.json",
+            "command": "clear && source install/setup.bash && ros2 launch carla_efs_spawner carla_efs_spawner.launch.py",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
@@ -64,6 +65,28 @@
                 "close": false
             }
         },
+        {
+            "label": "start-planner",
+            "type": "shell",
+            "command": "clear && source install/setup.bash && ros2 launch carla_efs_planner carla_efs_planner.launch.py",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "focus": true,
+                "close": false
+            },
+        },
+        // {
+        //     "label": "spawn-actor",
+        //     "type": "shell",
+        //     "command": "clear && source install/setup.bash && ros2 launch carla_spawn_objects carla_spawn_objects.launch.py objects_definition_file:=$WORKSPACE_DIR/configs/scenarios/follow_route.json",
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "revealProblems": "onProblem",
+        //         "focus": true,
+        //         "close": false
+        //     }
+        // },
         // {
         //     "label": "spawn-actor",
         //     "type": "shell",
@@ -78,48 +101,69 @@
         //                      Ready Scenario
         // ===================================================================
         {
-            "label": "ready-scenario",
+            "label": "start-debugging",
             "dependsOn": [
-                "move-to-actor",
-                "start-planner",
-                "open-dashboard"
+                "spectator-overview",
+                "start-painter",
+                // "open-dashboard"
             ]
         },
         {
-            "label": "move-to-actor",
+            "label": "spectator-overview",
             "type": "shell",
-            "command": "clear && source install/setup.bash && python3 -c 'from planner import CarlaAPI; CarlaAPI.move_to_actor([\"ego_vehicle\"])'",
+            "command": "clear && source install/setup.bash && python3 -c 'from carla_efs_api import CarlaAPI; CarlaAPI.spectator_overview()'",
             "presentation": {
                 "reveal": "silent",
                 "revealProblems": "onProblem",
-                "close": true
+                "close": false
             },
         },
         {
-            "label": "pin-spectator",
+            "label": "start-painter",
             "type": "shell",
-            "command": "clear && source install/setup.bash && python3 -c 'from planner import CarlaAPI; CarlaAPI.pin_spectator()'",
+            "command": "clear && source install/setup.bash && ros2 launch carla_efs_api painter.launch.py ",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
                 "close": false
             },
         },
-        {
-            "label": "start-planner",
-            "type": "shell",
-            "command": "clear && source install/setup.bash && ros2 launch planner planner.launch.py host:=$WINDOWS_HOST",
-            "presentation": {
-                "reveal": "always",
-                "revealProblems": "onProblem",
-                "focus": true,
-                "close": false
-            },
-        },
+        // {
+        //     "label": "move-to-actor",
+        //     "type": "shell",
+        //     "command": "clear && source install/setup.bash && python3 -c 'from planner import CarlaAPI; CarlaAPI.move_to_actor([\"ego_vehicle\"])'",
+        //     "presentation": {
+        //         "reveal": "silent",
+        //         "revealProblems": "onProblem",
+        //         "close": true
+        //     },
+        // },
+        // {
+        //     "label": "pin-spectator",
+        //     "type": "shell",
+        //     "command": "clear && source install/setup.bash && python3 -c 'from planner import CarlaAPI; CarlaAPI.pin_spectator()'",
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "revealProblems": "onProblem",
+        //         "close": false
+        //     },
+        // },
+
+        // {
+        //     "label": "start-planner",
+        //     "type": "shell",
+        //     "command": "clear && source install/setup.bash && ros2 launch planner planner.launch.py host:=$HOST_IP_ADDRESS",
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "revealProblems": "onProblem",
+        //         "focus": true,
+        //         "close": false
+        //     },
+        // },
         {
             "label": "open-dashboard",
             "type": "shell",
-            "command": "clear && source install/setup.bash && ros2 launch dashboard dashboard.launch.py host:=$WINDOWS_HOST",
+            "command": "clear && source install/setup.bash && ros2 launch dashboard dashboard.launch.py host:=$HOST_IP_ADDRESS",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
