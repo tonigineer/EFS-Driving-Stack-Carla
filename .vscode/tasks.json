@@ -47,8 +47,8 @@
         //                      Set up Scenario
         // ===================================================================
         {
-            "label": "set-up-scenario",
-            "dependsOrder": "sequence",
+            "label": "prepare-scenario",
+            // "dependsOrder": "sequence",
             "dependsOn": [
                 "spawn-actor",
                 "start-planner",
@@ -61,7 +61,6 @@
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
-                "focus": true,
                 "close": false
             }
         },
@@ -72,7 +71,6 @@
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
-                "focus": true,
                 "close": false
             },
         },
@@ -105,7 +103,7 @@
             "dependsOn": [
                 "spectator-overview",
                 "start-painter",
-                // "open-dashboard"
+                "open-dashboard"
             ]
         },
         {
@@ -115,13 +113,23 @@
             "presentation": {
                 "reveal": "silent",
                 "revealProblems": "onProblem",
-                "close": false
+                "close": true
             },
         },
         {
             "label": "start-painter",
             "type": "shell",
             "command": "clear && source install/setup.bash && ros2 launch carla_efs_api painter.launch.py ",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "close": false
+            },
+        },
+        {
+            "label": "open-dashboard",
+            "type": "shell",
+            "command": "clear && source install/setup.bash && ros2 launch carla_efs_api dashboard.launch.py ",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
@@ -160,17 +168,17 @@
         //         "close": false
         //     },
         // },
-        {
-            "label": "open-dashboard",
-            "type": "shell",
-            "command": "clear && source install/setup.bash && ros2 launch dashboard dashboard.launch.py host:=$HOST_IP_ADDRESS",
-            "presentation": {
-                "reveal": "always",
-                "revealProblems": "onProblem",
-                "focus": true,
-                "close": false
-            },
-        },
+        // {
+        //     "label": "open-dashboard",
+        //     "type": "shell",
+        //     "command": "clear && source install/setup.bash && ros2 launch dashboard dashboard.launch.py host:=$HOST_IP_ADDRESS",
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "revealProblems": "onProblem",
+        //         "focus": true,
+        //         "close": false
+        //     },
+        // },
         {
             "label": "remove-actor",
             "type": "shell",

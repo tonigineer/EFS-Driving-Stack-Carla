@@ -23,7 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'painter = carla_efs_api.painter:main'
+            'painter = carla_efs_api.painter:main',
+            'dashboard = carla_efs_api.dashboard:main'
         ],
     },
     package_dir={'': '.'}

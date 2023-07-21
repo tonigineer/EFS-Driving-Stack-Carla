@@ -1,14 +1,10 @@
-"""Dashboard for Carla to visualize Simulation."""
-
-import os
-import sys
 import carla
 import numpy as np
 import pygame as pg
 
-from planner import CarlaAPI
+from carla_efs_api import CarlaAPI
 
-from time import perf_counter, sleep
+from time import perf_counter
 from dataclasses import dataclass
 from typing import Tuple, List
 from typing import Callable
@@ -44,7 +40,7 @@ class DisplayManager:
     """
 
     EXIT_KEYS = [pg.K_ESCAPE, pg.K_q]
-    MAX_FPS = 60
+    MAX_FPS = 144
 
     sensor_list = []
 
@@ -125,7 +121,6 @@ class DisplayManager:
             if event.type == pg.QUIT:
                 return True
             elif event.type == pg.KEYDOWN:
-                pg.K_ESCAPE
                 if event.key in self.EXIT_KEYS:
                     return True
         return False
@@ -197,7 +192,7 @@ class SensorManager:
         self.sensor.destroy()
 
 
-class Dashboard:
+class DashboardStandalone:
 
     actor: carla.Actor
     actor_callback: Callable
@@ -253,28 +248,27 @@ class Dashboard:
         """Start Dashboard loop to render camera and info data."""
         try:
             while True:
-                for event in pg.event.get():
-                    if event.type == pg.QUIT:
-                        break
+                # for event in pg.event.get():
+                #     if event.type == pg.QUIT:
+                #         break
                 self.display_manager.render(
                     actor_infos=self.actor_callback()
                 )
                 if self.display_manager.check_events():
                     break
-                print('as')
         finally:
             self.display_manager.destroy()
 
-    def render_manually(self):
+    def render_manually(self) -> bool:
         # NOTE: Checking events is needed, otherwise Pygame
         # shows `not responding error` while still working.
         # Only got this error on my Ubuntu-22.04 so far.
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                break
+
         self.display_manager.render(
             actor_infos=self.actor_callback()
         )
+        if self.display_manager.check_events():
+            self.display_manager.destroy()
 
 
 def main():
@@ -285,7 +279,7 @@ def main():
         """Exemplary callback for actor information."""
         return ['line 1', 'line 2']
 
-    dashboard = Dashboard(
+    dashboard = DashboardStandalone(
         actor=actor,
         actor_callback=_callback_info_text
     )

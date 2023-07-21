@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'carla_efs_vehicle_control_interface'
+package_name = 'carla_efs_vehicle_control'
 
 setup(
     name=package_name,
@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'carla_efs_vehicle_control_interface = carla_efs_vehicle_control_interface.carla_efs_vehicle_control_interface:main'
+            'carla_efs_vehicle_control = carla_efs_vehicle_control.carla_efs_vehicle_control:main'
         ],
     },
 )

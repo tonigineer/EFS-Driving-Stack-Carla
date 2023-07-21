@@ -19,7 +19,7 @@
             "tooltip": "🗺️ Load \"Map\", spawn \"Actors\" and start \"Planner\""
         },
         {
-            "label": "$(location) Start debugging",
+            "label": "$(callstack-view-session) Start debugging",
             "task": "start-debugging",
             "tooltip": "🎬 Start \"Painter\" and open \"Dashboard\""
         },
