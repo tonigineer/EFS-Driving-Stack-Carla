@@ -4,13 +4,11 @@ import numpy as np
 from simple_pid import PID
 
 import rclpy
+from rclpy.node import Node
 
 from nav_msgs.msg import Odometry
 
-from ros_compatibility import loginfo, logwarn
-from ros_compatibility.exceptions import ROSException
-
-from carla_efs_api import CarlaAPI
+from carla_efs_api import CarlaAPI,  loginfo
 from carla_efs_messages.msg import VehicleControl, VehicleState, VehiclePhysics
 
 
@@ -194,8 +192,6 @@ def main(args=None):
     try:
         veh_ctrl_interface = VehicleControlInterface()
         rclpy.spin(veh_ctrl_interface)
-    except (RuntimeError, ROSException):
-        pass
     except KeyboardInterrupt:
         loginfo("User requested shut down.")
     finally:

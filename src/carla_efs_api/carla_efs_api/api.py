@@ -14,11 +14,12 @@ import os
 import re
 import carla
 import numpy as np
+
 from typing import List
 from random import choice
 from time import sleep
 
-from ros_compatibility import loginfo, logerr, logwarn
+from carla_efs_api.logging import loginfo, logerr, logwarn
 
 
 class CarlaAPI():

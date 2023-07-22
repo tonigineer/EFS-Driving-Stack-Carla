@@ -2,19 +2,16 @@ import os
 import numpy as np
 
 import rclpy
+from rclpy.node import Node
 
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped
 
-from ros_compatibility import loginfo, logwarn
-from ros_compatibility.exceptions import ROSException
-
-from carla_efs_api import CarlaAPI, transformations
-
+from carla_efs_api import CarlaAPI, transformations, loginfo
 from carla_efs_planner import GlobalRoutePlanner
 
 
-class Planner(rclpy.node.Node):
+class Planner(Node):
 
     REFRESH_RATE_ROUTE_HZ = 0.2
     REFRESH_RATE_REFERENCE_HZ = 1
@@ -191,8 +188,6 @@ def main(args=None):
     try:
         planner = Planner()
         rclpy.spin(planner)
-    except (RuntimeError, ROSException):
-        pass
     except KeyboardInterrupt:
         loginfo("User requested shut down.")
     finally:

@@ -1,17 +1,15 @@
-import rclpy
 import numpy as np
-
 from typing import List
+
+import rclpy
+from rclpy.node import Node
 
 from nav_msgs.msg import Odometry
 
-from ros_compatibility import loginfo
-from ros_compatibility.exceptions import ROSException
-
-from carla_efs_api import CarlaAPI, DashboardStandalone
+from carla_efs_api import CarlaAPI, DashboardStandalone, loginfo
 
 
-class Dashboard(rclpy.node.Node):
+class Dashboard(Node):
 
     REFRESH_RATE_HZ = 72  # max. 144Hz set by display manager
 
@@ -152,8 +150,6 @@ def main(args=None):
     try:
         dashboard = Dashboard()
         rclpy.spin(dashboard)
-    except (RuntimeError, ROSException):
-        pass
     except KeyboardInterrupt:
         loginfo("User requested shut down.")
     finally:

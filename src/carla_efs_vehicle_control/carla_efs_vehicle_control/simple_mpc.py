@@ -1,18 +1,15 @@
-import carla
 import numpy as np
 import casadi as cs
 import casadi.tools as ct
 from time import perf_counter
 
 import rclpy
-from nav_msgs.msg import Path, Odometry
+from rclpy.node import Node
 
+from nav_msgs.msg import Path, Odometry
 from transforms3d.euler import quat2euler
 
-from ros_compatibility import loginfo
-from ros_compatibility.exceptions import ROSException
-
-from carla_efs_api import CarlaAPI
+from carla_efs_api import CarlaAPI, loginfo
 from carla_efs_messages.msg import VehicleControl, StatusMPC
 
 
@@ -20,7 +17,7 @@ x = ct.struct_symMX(['pos_x', 'pos_y', 'psi', 'vx', 'vy', 'psip'])
 u = ct.struct_symMX(['delta_v', 'ax'])
 
 
-class MPCTrajTrack(rclpy.node.Node):
+class MPCTrajTrack(Node):
 
     REFRESH_RATE_MPC_NODE_HZ = 10
 
@@ -371,8 +368,6 @@ def main(args=None):
     try:
         mpc = MPCTrajTrack()
         rclpy.spin(mpc)
-    except (RuntimeError, ROSException):
-        pass
     except KeyboardInterrupt:
         loginfo("User requested shut down.")
     finally:

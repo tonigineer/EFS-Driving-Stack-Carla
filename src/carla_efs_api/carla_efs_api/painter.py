@@ -1,17 +1,15 @@
-
 import carla
-import rclpy
 import numpy as np
+
+import rclpy
+from rclpy.node import Node
 
 from nav_msgs.msg import Path
 
-from ros_compatibility import loginfo
-from ros_compatibility.exceptions import ROSException
-
-from carla_efs_api import CarlaAPI
+from carla_efs_api import CarlaAPI, loginfo
 
 
-class Painter(rclpy.node.Node):
+class Painter(Node):
 
     REFRESH_RATE_ROUTE_HZ = 0.2
     REFRESH_RATE_REFERENCE_HZ = 1
@@ -55,7 +53,7 @@ class Painter(rclpy.node.Node):
             thickness=0.25,
             color=carla.Color(1, 1, 1, 100)
         )
-        loginfo('route reference')
+        loginfo('Reference painted')
 
     def configure_subscriber(self) -> None:
         self.sub_route = self.create_subscription(
@@ -76,8 +74,6 @@ def main(args=None):
     try:
         painter = Painter()
         rclpy.spin(painter)
-    except (RuntimeError, ROSException):
-        pass
     except KeyboardInterrupt:
         loginfo("User requested shut down.")
     finally:

@@ -1,20 +1,15 @@
 from random import choice
 
 import rclpy
+from rclpy.node import Node
 
 from nav_msgs.msg import Odometry
 
-from ros_compatibility import loginfo
-from ros_compatibility.exceptions import ROSException
-
-from carla_efs_api import CarlaAPI
-from carla_efs_api.transformations import (
-    carla_transform_to_ros_pose,
-    carla_velocity_to_ros_twist
-)
+from carla_efs_api import CarlaAPI, loginfo
+from carla_efs_api import Transformations as tf
 
 
-class Spawner(rclpy.node.Node):
+class Spawner(Node):
 
     ODOMETRY_REFRESH_RATE_HZ = 200
 
@@ -40,11 +35,11 @@ class Spawner(rclpy.node.Node):
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.child_frame_id = self.role_name
 
-        msg.pose.pose = carla_transform_to_ros_pose(
+        msg.pose.pose = tf.carla_transform_to_ros_pose(
             self.actor.get_transform()
         )
 
-        msg.twist.twist = carla_velocity_to_ros_twist(
+        msg.twist.twist = tf.carla_velocity_to_ros_twist(
             self.actor.get_velocity(),
             self.actor.get_angular_velocity(),
             self.actor.get_transform().rotation)
@@ -95,8 +90,6 @@ def main(args=None):
     try:
         spawner = Spawner()
         rclpy.spin(spawner)
-    except (RuntimeError, ROSException):
-        pass
     except KeyboardInterrupt:
         loginfo("User requested shut down.")
     finally:

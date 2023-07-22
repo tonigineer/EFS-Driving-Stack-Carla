@@ -9,7 +9,7 @@ from collections import deque
 import math
 import numpy as np
 import carla
-from agents.tools.misc import get_speed
+from carla_efs_planner.misc import get_speed
 
 
 class VehiclePIDController():
