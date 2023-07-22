@@ -32,17 +32,6 @@
             "dependsOrder": "sequence",
             "dependsOn": ["clean", "build"]
         },
-        // {
-        //     "label": "carla-ros-bridge",
-        //     "type": "shell",
-        //     "command": "ros2 launch carla_ros_bridge carla_ros_bridge.launch.py town:=Carla/Maps/Town10HD_Opt host:=$HOST_IP_ADDRESS timeout:=10 synchronous_mode_wait_for_vehicle_control_command:=False fixed_delta_seconds:=0.05 use_sim_time:=True passive:=True",
-        //     "presentation": {
-        //         "reveal": "always",
-        //         "revealProblems": "onProblem",
-        //         "focus": true,
-        //         "close": false
-        //     }
-        // },
         // ===================================================================
         //                      Set up Scenario
         // ===================================================================
@@ -74,27 +63,28 @@
                 "close": false
             },
         },
-        // {
-        //     "label": "spawn-actor",
-        //     "type": "shell",
-        //     "command": "clear && source install/setup.bash && ros2 launch carla_spawn_objects carla_spawn_objects.launch.py objects_definition_file:=$WORKSPACE_DIR/configs/scenarios/follow_route.json",
-        //     "presentation": {
-        //         "reveal": "always",
-        //         "revealProblems": "onProblem",
-        //         "focus": true,
-        //         "close": false
-        //     }
-        // },
-        // {
-        //     "label": "spawn-actor",
-        //     "type": "shell",
-        //     "command": "clear && python3 -c 'from planner import CarlaAPI; CarlaAPI.remove_actors([\"ego_vehicle\"]); CarlaAPI.spawn_vehicle(blueprint=\"vehicle.audi.etron\",role_name=\"ego_vehicle\")'",
-        //     "presentation": {
-        //         "reveal": "always",
-        //         "revealProblems": "onProblem",
-        //         "close": true
-        //     }
-        // },
+        {
+            "label": "remove-actor",
+            "type": "shell",
+            "command": "clear && source install/setup.bash && python3 -c 'from carla_efs_api import CarlaAPI; CarlaAPI.remove_actors([\"ego_vehicle\", \"sensor.\"])'",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "focus": true,
+                "close": true
+            },
+        },
+        {
+            "label": "respawn-actor",
+            "type": "shell",
+            "command": "clear && source install/setup.bash && python3 -c 'from carla_efs_api import CarlaAPI; CarlaAPI.respawn_actor()'",
+            "presentation": {
+                "reveal": "always",
+                "revealProblems": "onProblem",
+                "focus": true,
+                "close": false
+            },
+        },
         // ===================================================================
         //                      Ready Scenario
         // ===================================================================
@@ -136,68 +126,23 @@
                 "close": false
             },
         },
-        // {
-        //     "label": "move-to-actor",
-        //     "type": "shell",
-        //     "command": "clear && source install/setup.bash && python3 -c 'from planner import CarlaAPI; CarlaAPI.move_to_actor([\"ego_vehicle\"])'",
-        //     "presentation": {
-        //         "reveal": "silent",
-        //         "revealProblems": "onProblem",
-        //         "close": true
-        //     },
-        // },
-        // {
-        //     "label": "pin-spectator",
-        //     "type": "shell",
-        //     "command": "clear && source install/setup.bash && python3 -c 'from planner import CarlaAPI; CarlaAPI.pin_spectator()'",
-        //     "presentation": {
-        //         "reveal": "always",
-        //         "revealProblems": "onProblem",
-        //         "close": false
-        //     },
-        // },
-
-        // {
-        //     "label": "start-planner",
-        //     "type": "shell",
-        //     "command": "clear && source install/setup.bash && ros2 launch planner planner.launch.py host:=$HOST_IP_ADDRESS",
-        //     "presentation": {
-        //         "reveal": "always",
-        //         "revealProblems": "onProblem",
-        //         "focus": true,
-        //         "close": false
-        //     },
-        // },
-        // {
-        //     "label": "open-dashboard",
-        //     "type": "shell",
-        //     "command": "clear && source install/setup.bash && ros2 launch dashboard dashboard.launch.py host:=$HOST_IP_ADDRESS",
-        //     "presentation": {
-        //         "reveal": "always",
-        //         "revealProblems": "onProblem",
-        //         "focus": true,
-        //         "close": false
-        //     },
-        // },
         {
-            "label": "remove-actor",
+            "label": "move-to-actor",
             "type": "shell",
-            "command": "clear && source install/setup.bash && python3 -c 'from planner import CarlaAPI; CarlaAPI.remove_actors([\"ego_vehicle\", \"sensor.\"])'",
+            "command": "clear && source install/setup.bash && python3 -c 'from carla_efs_api import CarlaAPI; CarlaAPI.move_to_actor([\"ego_vehicle\"])'",
             "presentation": {
-                "reveal": "always",
+                "reveal": "silent",
                 "revealProblems": "onProblem",
-                "focus": true,
                 "close": true
             },
         },
         {
-            "label": "respawn-actor",
+            "label": "pin-spectator",
             "type": "shell",
-            "command": "clear && source install/setup.bash && python3 -c 'from planner import CarlaAPI; CarlaAPI.respawn_actor()'",
+            "command": "clear && source install/setup.bash && python3 -c 'from carla_efs_api import CarlaAPI; CarlaAPI.pin_spectator()'",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
-                "focus": true,
                 "close": false
             },
         },
@@ -209,28 +154,26 @@
             // "type": "shell",
             // "dependsOrder": "sequence",
             "dependsOn": [
-                "start-ackermann-interface",
+                "start-vehicle-control-interface",
                 "start-mpc-controller"]
         },
         {
-            "label": "start-ackermann-interface",
+            "label": "start-vehicle-control-interface",
             "type": "shell",
-            "command": "clear && source install/setup.bash && ros2 launch carla_ackermann_control carla_ackermann_control.launch.py",
+            "command": "clear && source install/setup.bash && ros2 launch carla_efs_vehicle_control vehicle_control_interface.launch.py",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
-                "focus": true,
                 "close": false
             },
         },
         {
             "label": "start-mpc-controller",
             "type": "shell",
-            "command": "clear && source install/setup.bash && ros2 launch controller controller.launch.py",
+            "command": "clear && source install/setup.bash && ros2 launch carla_efs_vehicle_control simple_mpc.launch.py",
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
-                "focus": true,
                 "close": false
             },
         },

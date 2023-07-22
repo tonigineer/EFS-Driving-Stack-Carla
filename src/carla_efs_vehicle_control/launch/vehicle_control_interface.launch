@@ -1,0 +1,9 @@
+<!-- -->
+<launch>
+  <arg name="role_name" default="ego_vehicle" />
+
+  <node pkg="carla_efs_vehicle_control" type="vehicle_control_interface.py" name="vehicle_control_interface" output="screen">
+    <param name="role_name" value="$(arg role_name)" />
+  </node>
+
+</launch>

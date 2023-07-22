@@ -14,8 +14,10 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   msg/StatusMPC.msg
   msg/VehicleControl.msg
+  msg/VehiclePhysics.msg
+  msg/VehicleState.msg
   DEPENDENCIES std_msgs
- )
+)
 
 
 if(BUILD_TESTING)

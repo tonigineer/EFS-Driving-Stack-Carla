@@ -1,0 +1,2 @@
+std_msgs/Header header
+float32 max_steering_angle

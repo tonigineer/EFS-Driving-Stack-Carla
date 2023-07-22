@@ -8,11 +8,6 @@
             "task": "re-build",
             "tooltip": "🧹🛠️ Start the \"re-build\" task"
         },
-        // {
-        //     "label": "$(comments-view-icon) Carla-ROS-Bridge",
-        //     "task": "carla-ros-bridge",
-        //     "tooltip": "🌉 Start the \"carla-ros-bridge\""
-        // },
         {
             "label": "$(location) Prepare scenario",
             "task": "prepare-scenario",
@@ -26,7 +21,7 @@
         {
             "label": "$(notebook-execute-all) Start scenario",
             "task": "start-controlling",
-            "tooltip": "🎮 Start \"MPC controller\" with \"Ackermann-Interface\""
+            "tooltip": "🎮 Start \"MPC controller\" with \"Vehicle-Control-Interface\""
         },
         {
             "label": "$(file-directory-create) All tasks",
@@ -47,6 +42,11 @@
                     "description": "Spawn \"Audi Etron\" as \"ego-vehicle\" (destroy if exists)"
                 },
                 {
+                    "label": "$(debug-reverse-continue) Respawn Actor",
+                    "task": "respawn-actor",
+                    "description": "Respawn Actor with role \"ego-vehicle\" at the beginning of the planned route."
+                },
+                {
                 "label": "$(breakpoints-remove-all) Remove Actors",
                     "task": "remove-actor",
                     "description": "Remove all \"ego-vehicle\" roles (Sometimes the Carla-ROS-Bridge does not remove their spawned actors)"
@@ -57,9 +57,14 @@
                     "description": "Random route with path and reference messages for actor \"ego-vehicle\""
                 },
                 {
-                    "label": "$(telescope) Move to Actor",
+                    "label": "$(dashboard) Open Dashboard",
+                    "task": "open-dashboard",
+                    "description": "Open dashboard for Actor \"ego-vehicle\" with two cameras"
+                },
+                {
+                    "label": "$(telescope) Observe Actor",
                     "task": "move-to-actor",
-                    "description": "Move to Actor \"ego-vehicle\""
+                    "description": "Move Spectator to Actor \"ego-vehicle\""
                 },
                 {
                     "label": "$(timeline-unpin) Pin Spectator",
@@ -67,18 +72,8 @@
                     "description": "Pin Spectator to Actor \"ego-vehicle\" (i.e.: follow vehicle in main window)"
                 },
                 {
-                    "label": "$(dashboard) Open Dashboard",
-                    "task": "open-dashboard",
-                    "description": "Open dashboard for actor \"ego-vehicle\" with two cameras"
-                },
-                {
-                    "label": "$(debug-reverse-continue) Respawn Actor",
-                    "task": "respawn-actor",
-                    "description": "Respawn Actor with role \"ego-vehicle\" at the beginning of the planned route."
-                },
-                {
-                    "label": "$(symbol-interface) Ackermann",
-                    "task": "start-ackermann-interface",
+                    "label": "$(symbol-interface) VCI",
+                    "task": "start-vehicle-control-interface",
                     "description": "Start interface for Carla to control by Steering angle, Velocity and Acceleration"
                 },
                 {

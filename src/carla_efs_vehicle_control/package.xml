@@ -7,6 +7,11 @@
   <maintainer email="toni@lubiniecki.de">ros</maintainer>
   <license>TODO: License declaration</license>
 
+  <depend>tf2_ros</depend>
+  <depend>tf_transformations</depend>
+
+  <depend>carla_efs_messages</depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
