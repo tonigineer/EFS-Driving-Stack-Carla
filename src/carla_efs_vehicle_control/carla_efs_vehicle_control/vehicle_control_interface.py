@@ -135,7 +135,7 @@ class VehicleControlInterface(rclpy.node.Node):
             return
 
         self.speed_controller.setpoint = self.vehicle_control.desired_velocity
-        # loginfo(f'{self.odometry.twist.twist.linear.x}')
+        loginfo(f'{self.odometry.twist.twist.linear.x}')
         speed_control = float(
             self.speed_controller(self.odometry.twist.twist.linear.x)
         )
