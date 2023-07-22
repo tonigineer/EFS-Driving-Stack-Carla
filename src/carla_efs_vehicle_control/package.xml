@@ -8,7 +8,6 @@
   <license>TODO: License declaration</license>
 
   <depend>tf2_ros</depend>
-  <depend>tf_transformations</depend>
 
   <depend>carla_efs_messages</depend>
 

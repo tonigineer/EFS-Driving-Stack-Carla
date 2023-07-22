@@ -64,5 +64,5 @@
             ]
         }
     },
-    "postStartCommand": "scripts/symlink_ackermann_config.sh"
+    // "postStartCommand": "scripts/symlink_ackermann_config.sh"
 }
