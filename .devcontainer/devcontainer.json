@@ -2,7 +2,7 @@
 //{BLUEPRINT_X} will be replaced by setup script 
 {
     "dockerFile": "Dockerfile",
-    "initializeCommand": "scripts/get_host_ip_address.sh",
+    "initializeCommand": "scripts/initialize_commands.sh",
     "build": {
         "args": {
             "WORKSPACE": "${containerWorkspaceFolder}",
@@ -64,5 +64,5 @@
             ]
         }
     },
-    // "postStartCommand": "scripts/symlink_ackermann_config.sh"
+    "postStartCommand": "scripts/post_start_commands.sh"
 }

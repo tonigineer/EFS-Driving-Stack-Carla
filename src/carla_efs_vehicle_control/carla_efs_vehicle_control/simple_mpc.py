@@ -9,7 +9,8 @@ from rclpy.node import Node
 from nav_msgs.msg import Path, Odometry
 from transforms3d.euler import quat2euler
 
-from carla_efs_api import CarlaAPI, loginfo
+from carla_efs_api import CarlaAPI
+from carla_efs_api.ros_logging import loginfo
 from carla_efs_messages.msg import VehicleControl, StatusMPC
 
 
@@ -109,7 +110,7 @@ class MPCTrajTrack(Node):
             control_out, state_horizon = self.mpc.solve(
                 state_vector=x0, reference=ref)
         except Exception as e:
-            self.loginfo(f'{e}')
+            loginfo(f'{e}')
 
         # Status of MPC
         msg = StatusMPC()

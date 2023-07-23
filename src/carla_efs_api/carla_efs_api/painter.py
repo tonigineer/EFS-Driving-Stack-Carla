@@ -6,7 +6,8 @@ from rclpy.node import Node
 
 from nav_msgs.msg import Path
 
-from carla_efs_api import CarlaAPI, loginfo
+from carla_efs_api import CarlaAPI
+from carla_efs_api.ros_logging import loginfo
 
 
 class Painter(Node):

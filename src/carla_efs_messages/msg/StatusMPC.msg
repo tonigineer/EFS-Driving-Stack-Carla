@@ -1,3 +1,4 @@
 std_msgs/Header header
 float32 lateral_deviation
+float32 velocity_difference
 float32 execution_time

@@ -1,8 +1,12 @@
+import os
 import carla
 import numpy as np
 import pygame as pg
+import datetime
+import math
 
 from carla_efs_api import CarlaAPI
+from carla_efs_api.ros_logging import logwarn
 
 from time import perf_counter
 from dataclasses import dataclass
@@ -83,9 +87,9 @@ class DisplayManager:
     def get_sensor_list(self):
         return self.sensor_list
 
-    def render(self, actor_infos: List[str] = None):
-        OFFSET_X = 10
-        OFFSET_Y_NEWLINE = 15
+    def render(self, hud_callback: Callable = None):
+        # OFFSET_X = 10
+        # OFFSET_Y_NEWLINE = 15
 
         if not self.render_enabled():
             return
@@ -93,18 +97,8 @@ class DisplayManager:
         for s in self.sensor_list:
             s.render()
 
-        info_surface = pg.Surface((210, 110))
-        info_surface.set_alpha(150)
-        self.display.blit(info_surface, (0, 0))
-
-        self.display.blit(self.update_fps(), (OFFSET_X, 0))
-
-        for i, info in enumerate(actor_infos):
-            self.display.blit(
-                self.font.render(
-                    info, 1, pg.Color("darkorange2")
-                ), (OFFSET_X, (i+1) * OFFSET_Y_NEWLINE)
-            )
+        if hud_callback:
+            self.display = hud_callback(self.display, self.clock)
 
         pg.display.flip()
         self.clock.tick(self.MAX_FPS)
@@ -195,29 +189,28 @@ class SensorManager:
 class DashboardStandalone:
 
     actor: carla.Actor
-    actor_callback: Callable
+    sensor_callback: Callable
 
     # NOTE Image sizes must be a multiple of 64, due to a bug.
     # https://github.com/carla-simulator/carla/issues/6085
-    height: int
 
     world: carla.World
 
     def __init__(self,
                  actor: carla.Actor,
-                 actor_callback: Callable = None,
-                 height: int = 768,
-                 world: carla.World = None):
+                 world: carla.World,
+                 width: int = 1280,
+                 height: int = 720,
+                 hud_callback: Callable = None):
         self.actor = actor
-        self.actor_callback = actor_callback
-
+        self.world = world
+        self.width = width
         self.height = height
-
-        self.world = world if world else CarlaAPI.get_world()
+        self.hud_callback = hud_callback
 
         # TODO: Implemented interface to change setup.
         self.sensory = [
-            SensorSetup(actor, "RGBCamera", (0, 0, 10), (0, -90, 0)),
+            # SensorSetup(actor, "RGBCamera", (0, 0, 10), (0, -90, 0)),
             SensorSetup(actor, "RGBCamera", (-5, 0, 3.5), (0, -10, 0)),
             # SensorSetup(actor, "RGBCamera", (-1, 2, 2.4), (0, -8, -30)),
         ]
@@ -228,7 +221,7 @@ class DashboardStandalone:
         """Create display manager for actor with sensory setup."""
         self.display_manager = DisplayManager(
             grid_size=[1, len(self.sensory)],
-            window_size=[self.height*len(self.sensory), self.height]
+            window_size=[self.width, self.height]
         )
 
         for idx, sensor in enumerate(self.sensory):
@@ -248,40 +241,220 @@ class DashboardStandalone:
         """Start Dashboard loop to render camera and info data."""
         try:
             while True:
-                # for event in pg.event.get():
-                #     if event.type == pg.QUIT:
-                #         break
-                self.display_manager.render(
-                    actor_infos=self.actor_callback()
-                )
+                self.display_manager.render(self.hud_callback)
                 if self.display_manager.check_events():
                     break
         finally:
             self.display_manager.destroy()
 
-    def render_manually(self) -> bool:
+    def render_manually(self):
         # NOTE: Checking events is needed, otherwise Pygame
         # shows `not responding error` while still working.
         # Only got this error on my Ubuntu-22.04 so far.
-
-        self.display_manager.render(
-            actor_infos=self.actor_callback()
-        )
+        self.display_manager.render(self.hud_callback)
         if self.display_manager.check_events():
             self.display_manager.destroy()
+            raise KeyboardInterrupt('Check event found to shutdown dashboard.')
+
+
+class HUD:
+
+    server_fps = 0
+    sim_time = 0
+
+    server_clock = None
+
+    BAR_H_OFFSET = 95
+    BAR_WIDTH = 120
+
+    ROW_Y_OFFSET = 18
+
+    _info_surface = None
+
+    def __init__(self, actor, world, width, height,
+                 sensor_callback: Callable = None):
+        pg.font.init()
+
+        self.actor = actor
+        self.world = world
+        self.world.on_tick(self.on_world_tick)
+
+        self.dim = (width, height)
+        self.font = self.define_font()
+
+        self.sensor_callback = sensor_callback
+
+        self.server_clock = pg.time.Clock()
+
+    @staticmethod
+    def define_font():
+        font_name = 'courier' if os.name == 'nt' else 'mono'
+        fonts = [x for x in pg.font.get_fonts() if font_name in x]
+        default_font = 'ubuntumono'
+        mono = default_font if default_font in fonts else fonts[0]
+        mono = pg.font.match_font(mono)
+        return pg.font.Font(mono, 12 if os.name == 'nt' else 14)
+
+    def on_world_tick(self, timestamp):
+        if not self.server_clock:
+            return
+        self.server_clock.tick()
+        self.server_fps = self.server_clock.get_fps()
+        self.sim_time = timestamp.elapsed_seconds
+
+    def gather_information(self, clock) -> List:
+        # Get from ROS topic's (actually also from Carla ;))
+        velocity = 'missing topic'
+        compass = 'missing topic'
+        gyroscope = 'missing topic'
+        gnss = 'missing topic'
+        imu = 'missing topic'
+
+        lat_dev = 'missing topic'
+        v_diff = 'missing topic'
+        exec_time = 'missing topic'
+        mpc_ax = 'missing topic'
+        mpc_vx = 'missing topic'
+        mpc_deltav = 'missing topic'
+
+        if self.sensor_callback:
+            data = self.sensor_callback()
+            if 'odometry' in data.keys():
+                velocity = \
+                    f"{data['odometry'].twist.twist.linear.x*3.6:0.0f} km/h"
+
+            if 'gnss' in data.keys():
+                gnss = f"({data['gnss'].latitude:0.5f}, " + \
+                       f"{data['gnss'].longitude:0.5f})"
+
+            if 'imu' in data.keys():
+                imu = f"({data['imu'].linear_acceleration.x:+2.1f}," + \
+                      f" {data['imu'].linear_acceleration.y:+2.1f}," + \
+                      f" {data['imu'].linear_acceleration.z:+2.1f})"
+
+                gyroscope = \
+                    f"({data['imu'].angular_velocity.x:+2.1f}," + \
+                    f" {data['imu'].angular_velocity.y:+2.1f}," + \
+                    f" {data['imu'].angular_velocity.z:+2.1f})"
+
+            if 'status_mpc' in data.keys():
+                exec_time = f"{data['status_mpc'].execution_time*1000:0.0f} ms"
+                lat_dev = f"{data['status_mpc'].lateral_deviation:0.2f} m"
+                v_diff = \
+                    f"{data['status_mpc'].velocity_difference*3.6:0.1f} km/h"
+
+            if 'veh_ctrl' in data.keys():
+                mpc_ax = f"{data['veh_ctrl'].desired_acceleration:0.1f} m/ss"
+                mpc_vx = f"{data['veh_ctrl'].desired_velocity*3.6:0.0f} km/h"
+                mpc_deltav = \
+                    f"{data['veh_ctrl'].desired_steering_angle:0.3f} rad"
+
+
+        # Read from Carla directly
+        t = self.actor.get_transform()
+        location = f"({t.location.x:0.1f}, {t.location.y:0.1f})"
+        c = self.actor.get_control()
+        altitude = f"{t.location.z:0.1f}"
+
+        gear = {-1: "R", 0: "N"}.get(c.gear, c.gear)
+
+        # Build list of strings from data
+        information = [
+            f'Server:   {self.server_fps:12.0f} FPS',
+            f'Client:   {clock.get_fps():12.0f} FPS',
+            '',
+            f'Vehicle:  {" ".join(self.actor.type_id.replace("_", ".").title().split(".")[1:]): >16}',
+            f'Map:      {self.world.get_map().name.split("/")[-1]: >16}',
+            '',
+            f'Simulation time:   {datetime.timedelta(seconds=int(self.sim_time))}',
+            '',
+            f'Speed:    {velocity: >16}',
+            f'IMU:    {imu: >16}',
+            f'Gyro:   {gyroscope: >16}',
+            f'Compasss: {compass: >16}',
+            f'Location: {location: >16}',
+            f'GNSS:   {gnss: >16}',
+            f'Altitude: {altitude: >14} m',
+            '',
+            ('Throttle: ', c.throttle, 0.0, 1.0),
+            ('Steer:    ', c.steer, -1.0, 1.0),
+            ('Brake:    ', c.brake, 0.0, 1.0),
+            f'Gear:      {gear}',
+            '',
+            (153, 0, 0),  # line
+            '',
+            f'delta_y: {lat_dev: >17}',
+            f'vx_diff: {v_diff: >17}',
+            '',
+            f'MPC time: {exec_time: >16}',
+            f'MPC ax: {mpc_ax: >18}',
+            f'MPC vx: {mpc_vx: >18}',
+            f'MPC delta_v: {mpc_deltav: >13}'
+        ]
+
+        return information
+
+    def render(self, display, clock):
+        # Background
+        if not self._info_surface:
+            self._info_surface = pg.Surface((220, self.dim[1]))
+            self._info_surface.set_alpha(150)
+        display.blit(self._info_surface, (0, 0))
+
+        information = self.gather_information(clock)
+
+        y_offset = 4
+        for item in information:
+            if y_offset + self.ROW_Y_OFFSET > self.dim[1]:
+                break
+
+            if isinstance(item, tuple):
+                # Item is color code for a line
+                if all(isinstance(v, int) for v in item):
+                    pg.draw.lines(
+                        display, item,
+                        False, [(10, y_offset), (210, y_offset)], 2)
+                    continue
+
+                # Draw bars for pedals
+                rect_border = pg.Rect((self.BAR_H_OFFSET, y_offset + 8), (self.BAR_WIDTH, 6))
+                pg.draw.rect(display, (255, 255, 255), rect_border, 1)
+                f = (item[1] - item[2]) / (item[3] - item[2])
+                if item[2] < 0.0:
+                    rect = pg.Rect((self.BAR_H_OFFSET + f * (self.BAR_WIDTH - 6), y_offset + 8), (6, 6))
+                else:
+                    rect = pg.Rect((self.BAR_H_OFFSET, y_offset + 8), (f * self.BAR_WIDTH, 6))
+                pg.draw.rect(display, (255, 255, 255), rect)
+
+                item = item[0]
+
+            surface = self.font.render(item, True, (255, 255, 255))
+            display.blit(surface, (8, y_offset))
+
+            y_offset += self.ROW_Y_OFFSET
+        return display
 
 
 def main():
     """Entry point for example."""
-    actor = CarlaAPI.get_actors(pattern=['ego_vehicle'])[0]
+    pg.init()
+    pg.font.init()
+    world = CarlaAPI.get_world()
+    actor = CarlaAPI.get_actor(world=world, pattern=['ego_vehicle'])
 
-    def _callback_info_text():
-        """Exemplary callback for actor information."""
-        return ['line 1', 'line 2']
+    width = 1280
+    height = 720
+
+    hud = HUD(
+        actor=actor, world=world,
+        width=width, height=height,
+        sensor_callback=None
+    )
 
     dashboard = DashboardStandalone(
-        actor=actor,
-        actor_callback=_callback_info_text
+        actor=actor, world=world,
+        width=width, height=height,
+        hud_callback=hud.render
     )
 
     dashboard.start()

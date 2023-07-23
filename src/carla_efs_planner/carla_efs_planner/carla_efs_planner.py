@@ -7,7 +7,9 @@ from rclpy.node import Node
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped
 
-from carla_efs_api import CarlaAPI, transformations, loginfo
+from carla_efs_api import CarlaAPI
+import carla_efs_api.transformations as tf
+from carla_efs_api.ros_logging import loginfo, logwarn
 from carla_efs_planner import GlobalRoutePlanner
 
 
@@ -34,10 +36,10 @@ class Planner(Node):
 
         # TODO: Arguments needed :)
         self.world = CarlaAPI.get_world()
-        self.actor = CarlaAPI.get_actors(
+        self.actor = CarlaAPI.get_actor(
             world=self.world,
             pattern=[self.role_name]
-        )[0]
+        )
 
         self.start = self.actor.get_location()
         self.goal = self.world.get_map().get_spawn_points()[0].location
@@ -85,7 +87,7 @@ class Planner(Node):
 
         for wp in self.route:
             pose = PoseStamped()
-            pose.pose = transformations.carla_transform_to_ros_pose(
+            pose.pose = tf.carla_transform_to_ros_pose(
                 wp[0].transform
             )
             msg.poses.append(pose)
@@ -109,7 +111,7 @@ class Planner(Node):
 
         for idx in self.reference_indices:
             pose = PoseStamped()
-            pose.pose = transformations.carla_transform_to_ros_pose(
+            pose.pose = tf.carla_transform_to_ros_pose(
                 self.route[idx][0].transform
             )
             msg.poses.append(pose)
@@ -125,7 +127,9 @@ class Planner(Node):
 
         if self.odometry is None:
             logwarn(
-                f'Odometry for no published, reference can not be provided.')
+                f'Odometry for {self.role_name} not published yet, '
+                f'reference can not be provided.'
+            )
             return None
 
         ego_pos = np.array([

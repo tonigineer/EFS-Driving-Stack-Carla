@@ -19,7 +19,7 @@ from typing import List
 from random import choice
 from time import sleep
 
-from carla_efs_api.logging import loginfo, logerr, logwarn
+from carla_efs_api.ros_logging import loginfo, logerr, logwarn
 
 
 class CarlaAPI():
@@ -68,26 +68,54 @@ class CarlaAPI():
             )
 
     @classmethod
+    def get_actor(cls, pattern: List[str],
+                  world: carla.World = None,
+                  wait_time: float = 1) -> List[carla.Actor]:
+        """Return actor with matching pattern for `type_id` or `role_name`."""
+        actors = cls.get_actors(
+            world=world, pattern=pattern, wait_time=wait_time
+        )
+        if not actors:
+            logwarn(f'No actor forund for {pattern}')
+
+        if len(actors) > 1:
+            logwarn(f'Multiple actors found for {pattern}. '
+                    f'Selecting last one found.')
+
+        return actors[-1]
+
+    @classmethod
     def get_actors(cls, pattern: List[str],
-                   world: carla.World = None) -> List[carla.Actor]:
+                   world: carla.World = None,
+                   wait_time: float = 1) -> List[carla.Actor]:
         """Return actors with matching pattern for `type_id` or `role_name`."""
         if not world:
             world = cls.get_world()
 
         if type(pattern) is not list:
-            logwarn(f'keyword argmeunte `pattern` put in a list')
+            logwarn(f'keyword argument `pattern` put in a list')
             pattern = [pattern]
 
         actors = []
-        for actor in world.get_actors():
-            matched = False
-            if any(p in actor.type_id for p in pattern):
-                matched = True
-            if actor.attributes.get('role_name'):
-                if any(p in actor.attributes.get('role_name') for p in pattern):
+        waited = False
+        while True:
+            for actor in world.get_actors():
+                matched = False
+                if any(p in actor.type_id for p in pattern):
                     matched = True
-            if matched:
-                actors.append(actor)
+                if actor.attributes.get('role_name'):
+                    if any(p in actor.attributes.get('role_name') for p in pattern):
+                        matched = True
+                if matched:
+                    actors.append(actor)
+
+            # Sometimes actors need some time to finish spawing, therefore
+            # second try after `wait_time`
+            if actors or waited:
+                break
+
+            sleep(wait_time)
+            waited = True
 
         return actors
 

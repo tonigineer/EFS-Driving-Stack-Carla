@@ -1,12 +1,18 @@
 import numpy as np
-from typing import List
+from typing import Dict
 
 import rclpy
 from rclpy.node import Node
 
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import Imu
+from sensor_msgs.msg import NavSatFix
 
-from carla_efs_api import CarlaAPI, DashboardStandalone, loginfo
+from carla_efs_api import CarlaAPI
+from carla_efs_api.dashboard_standalone import DashboardStandalone, HUD
+from carla_efs_api.ros_logging import loginfo
+
+from carla_efs_messages.msg import VehicleControl, StatusMPC
 
 
 class Dashboard(Node):
@@ -15,9 +21,8 @@ class Dashboard(Node):
 
     # NOTE Image sizes must be a multiple of 64, due to a bug.
     # https://github.com/carla-simulator/carla/issues/6085
-    CAMERA_WIDTH = 64 * 4
 
-    odometry = None
+    sensor_data = {}
 
     def __init__(self):
         super().__init__('carla_efs_dashboard')
@@ -26,8 +31,8 @@ class Dashboard(Node):
         self.role_name = self.get_parameter('role_name').value
 
         self.world = CarlaAPI.get_world()
-        self.actor = CarlaAPI.get_actors(
-            world=self.world, pattern=[self.role_name])[0]
+        self.actor = CarlaAPI.get_actor(
+            world=self.world, pattern=[self.role_name])
 
         self.set_up_communication()
 
@@ -44,51 +49,60 @@ class Dashboard(Node):
             self.callback_odometry, 10
         )
 
-        # self.sub_ackermann = self.create_subscription(
-        #     AckermannDrive, f'/carla/{self.role_name}/ackermann_cmd',
-        #     self._callback_ackermann, 10
-        # )
+        self.sub_imu = self.create_subscription(
+            Imu, f'/carla/{self.role_name}/imu',
+            self.callback_imu, 10
+        )
 
-        # self.sub_status_mpc = self.create_subscription(
-        #     StatusMPC, f'/carla/{self.role_name}/status_mpc',
-        #     self._callback_status_mpc, 10
-        # )
+        self.sub_gnss = self.create_subscription(
+            NavSatFix, f'/carla/{self.role_name}/gnss',
+            self.callback_gnss, 10
+        )
+
+        self.sub_veh_ctrl = self.create_subscription(
+            VehicleControl, f'/carla/{self.role_name}/vehicle_control',
+            self.callback_veh_ctrl, 10
+        )
+
+        self.sub_status_mpc = self.create_subscription(
+            StatusMPC, f'/carla/{self.role_name}/status_mpc',
+            self.callback_status_mpc, 10
+        )
 
     def callback_odometry(self, msg):
-        # loginfo('fdasfdsa')
-        self.odometry = msg
+        self.sensor_data['odometry'] = msg
 
-    # def callback_ackermann(self, msg):
-    #     self.ackermann = msg
+    def callback_imu(self, msg):
+        self.sensor_data['imu'] = msg
 
-    # def callback_status_mpc(self, msg):
-    #     self.status_mpc = msg
+    def callback_gnss(self, msg):
+        self.sensor_data['gnss'] = msg
 
-    def actor_callback(self) -> List[str]:
-        infos = []
+    def callback_status_mpc(self, msg):
+        self.sensor_data['status_mpc'] = msg
 
-        if not self.odometry:
-            return infos
+    def callback_veh_ctrl(self, msg):
+        self.sensor_data['veh_ctrl'] = msg
 
-        infos.append(
-            f'vx_ego: {np.abs(self.odometry.twist.twist.linear.x):0.2f}   m/s')
-        # infos.append(
-        #     f'vx_set: {self.ackermann.speed:0.2f}   m/s')
-        # infos.append(f'')
-        # infos.append(
-        #     f'delta_y: {self.status_mpc.lateral_deviation:0.2f}  m')
-        # infos.append(
-        #     f't_exec : {self.status_mpc.execution_time:0.3f} s')
-
-        return infos
+    def sensor_data_callback(self) -> Dict:
+        return self.sensor_data
 
     def create_dashboard(self):
         loginfo('Dashboard started')
 
+        width = 1280
+        height = 720
+
+        hud = HUD(
+            actor=self.actor, world=self.world,
+            width=width, height=height,
+            sensor_callback=self.sensor_data_callback
+        )
+
         self.dashboard = DashboardStandalone(
-            actor=self.actor,
-            actor_callback=self.actor_callback,
-            height=self.CAMERA_WIDTH
+            actor=self.actor, world=self.world,
+            width=width, height=height,
+            hud_callback=hud.render,
         )
 
         self.dashboard.render_manually()
@@ -96,51 +110,6 @@ class Dashboard(Node):
     def destroy(self):
         # NOTE: display_manager takes care of destroying sensory
         pass
-        # self.dashboard.display_manager.destroy()
-
-        # self.configure_subscriber()
-
-    # def callback_route(self, msg):
-    #     nodes = np.array(
-    #         [[p.pose.position.x, -p.pose.position.y] for p in msg.poses]
-    #     )
-
-    #     CarlaAPI.draw_debug_line(
-    #         points=nodes,
-    #         world=self.world,
-    #         life_time=1.0/self.REFRESH_RATE_ROUTE_HZ,
-    #         location_z=0.01,
-    #         thickness=0.20,
-    #         color=carla.Color(1, 0, 0, 100)
-    #     )
-
-    #     loginfo('Route painted')
-
-    # def callback_reference(self, msg):
-    #     nodes = np.array(
-    #         [[p.pose.position.x, -p.pose.position.y] for p in msg.poses]
-    #     ).T
-
-    #     CarlaAPI.draw_debug_line(
-    #         points=nodes,
-    #         world=self.world,
-    #         life_time=1.0/self.REFRESH_RATE_REFERENCE_HZ,
-    #         location_z=0.05,
-    #         thickness=0.25,
-    #         color=carla.Color(1, 1, 1, 100)
-    #     )
-    #     loginfo('route reference')
-
-    # def configure_subscriber(self) -> None:
-    #     self.sub_route = self.create_subscription(
-    #         Path, f'/carla/{self.role_name}/planner/route',
-    #         self.callback_route, 10
-    #     )
-
-    #     self.sub_reference = self.create_subscription(
-    #         Path, f'/carla/{self.role_name}/planner/reference',
-    #         self.callback_reference, 10
-    #     )
 
 
 def main(args=None):

@@ -57,6 +57,11 @@
                     "description": "Random route with path and reference messages for actor \"ego-vehicle\""
                 },
                 {
+                    "label": "$(paintcan) Start Painter",
+                    "task": "start-painter",
+                    "description": "Start drawing \"Route\" and \"Prediction horizon\" for Actor \"ego-vehicle\""
+                },
+                {
                     "label": "$(dashboard) Open Dashboard",
                     "task": "open-dashboard",
                     "description": "Open dashboard for Actor \"ego-vehicle\" with two cameras"

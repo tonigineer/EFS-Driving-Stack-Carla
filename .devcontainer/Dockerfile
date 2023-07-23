@@ -36,10 +36,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 
 # NOTE: Next three sections are based on
-# https://github.com/athackst/dockerfiles/blob/main/ros2/humble.Dockerfile
+# https://github.com/athackst/dockerfiles/blob/main/ros2/foxy.Dockerfile
 
 ###########################################
-#   BASE IMAGE WITH FOXY ROS
+#   BASE IMAGE WITH foxy ROS
 ###########################################
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -91,6 +91,7 @@ ENV PYTHONPATH=/opt/ros/foxy/lib/python3.10/site-packages:$PYTHONPATH
 ENV ROS_PYTHON_VERSION=3
 ENV ROS_VERSION=2
 ENV DEBIAN_FRONTEND=
+ENV EDITOR=vim
 
 ###########################################
 #   DEVELOP IMAGE
@@ -148,61 +149,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV DEBIAN_FRONTEND=
 
 
-
 # ###########################################
-# #   CARLA ROS BRIDGE
+# #   Post install stuff
 # ###########################################
-# # Source: https://github.com/carla-simulator/ros-bridge/blob/master/docker/Dockerfile
-FROM full as carla
-
-# ARG USERNAME=ros
-ARG ROS_WS=ros2_ws
-
-RUN chown -R $USERNAME:$USERNAME /home/$USERNAME
+FROM full as efs
 
 USER $USERNAME
-ENV HOME /home/$USERNAME
 
-RUN mkdir -p /home/$USERNAME/$ROS_WS/src \
-    && cd /home/$USERNAME/$ROS_WS \
-    && git clone --recurse-submodules https://github.com/carla-simulator/ros-bridge.git ./src/carla_ros_bridge \
-    && sed -i "s/0.9.13/0.9.14/g" "./src/carla_ros_bridge/carla_ros_bridge/src/carla_ros_bridge/CARLA_VERSION" \
-    && ./src/carla_ros_bridge/install_dependencies.sh
-
-RUN cd /home/$USERNAME/$ROS_WS \
-    && rosdep update \
-    && rosdep install --from-paths src --ignore-src -r \
-    && pip3 install --upgrade pip \
+RUN pip3 install --upgrade pip \
     && python3 -m pip install \
         carla==0.9.14 \
         casadi \
         networkx \
-        simple-pid==1.0.1
+        pygame \
+        simple-pid \
+        transforms3d
 
-# ###########################################
-# #   Post install stuff
-# ###########################################
-# FROM carla as efs
-# WORKDIR /home/$USERNAME/$ROS_WS
+SHELL [ "/bin/bash", "-c"]
+RUN source /opt/ros/foxy/setup.bash
 
-# SHELL [ "/bin/bash", "-c"]
-# RUN source /opt/ros/foxy/setup.bash \
-#     && cd /home/$USERNAME/$ROS_WS \
-#     && colcon build
-
-# RUN echo "source /home/${USERNAME}/${ROS_WS}/install/setup.bash" >> ~/.bashrc
-
-# # Necessary code for Carla-ROS-Bridge from Carla repository
-# RUN cd /home/$USERNAME/ \
-#     && git clone https://github.com/carla-simulator/carla.git Carla
-
-# ARG CARLA_ROOT=/home/$USERNAME/Carla
-# ENV CARLA_ROOT=$CARLA_ROOT
-# ENV PYTHONPATH=$PYTHONPATH:$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.14.egg:$CARLA_ROOT/PythonAPI/carla
-
-# Otherwise, sourcing must be done manually within each
-# terminal that is opened in the Dev Container in VS Code
 RUN echo "source \$WORKSPACE_DIR/install/setup.bash" >> ~/.bashrc
-
-# # Dependencies of controller packages
-# RUN python3 -m pip install casadi

@@ -8,7 +8,8 @@ from rclpy.node import Node
 
 from nav_msgs.msg import Odometry
 
-from carla_efs_api import CarlaAPI,  loginfo
+from carla_efs_api import CarlaAPI
+from carla_efs_api.ros_logging import loginfo
 from carla_efs_messages.msg import VehicleControl, VehicleState, VehiclePhysics
 
 
