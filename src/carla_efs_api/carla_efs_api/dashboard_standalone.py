@@ -324,8 +324,8 @@ class HUD:
                     f"{data['odometry'].twist.twist.linear.x*3.6:0.0f} km/h"
 
             if 'gnss' in data.keys():
-                gnss = f"({data['gnss'].latitude:0.5f}, " + \
-                       f"{data['gnss'].longitude:0.5f})"
+                gnss = f"({data['gnss'].latitude:+0.5f}, " + \
+                       f"{data['gnss'].longitude:+0.5f})"
 
             if 'imu' in data.keys():
                 imu = f"({data['imu'].linear_acceleration.x:+2.1f}," + \
@@ -372,7 +372,7 @@ class HUD:
             f'Gyro:   {gyroscope: >16}',
             f'Compasss: {compass: >16}',
             f'Location: {location: >16}',
-            f'GNSS:   {gnss: >16}',
+            f'GNSS: {gnss: >16}',
             f'Altitude: {altitude: >14} m',
             '',
             ('Throttle: ', c.throttle, 0.0, 1.0),

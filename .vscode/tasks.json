@@ -70,7 +70,6 @@
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
-                "focus": true,
                 "close": true
             },
         },
@@ -81,8 +80,7 @@
             "presentation": {
                 "reveal": "always",
                 "revealProblems": "onProblem",
-                "focus": true,
-                "close": false
+                "close": true
             },
         },
         // ===================================================================

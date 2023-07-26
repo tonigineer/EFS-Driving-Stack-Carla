@@ -26,7 +26,7 @@ class MPCTrajTrack(Node):
     REFRESH_RATE_MPC_NODE_HZ = 10
 
     MPC_SAMPLE_TIME_SEC = 0.1
-    MPC_TIME_HORIZON = 3.0
+    MPC_TIME_HORIZON = 2.0
 
     state = np.zeros([6, 1])
     reference = np.zeros([
@@ -108,7 +108,7 @@ class MPCTrajTrack(Node):
 
     def callback_controller(self):
         x0 = self.state
-        ref = self.reference[0:self.mpc.N_hor+1, :].T
+        ref = self.reference.T
 
         ref, ey = self.convert_path_to_trajectory(
             nodes=ref,
@@ -123,7 +123,13 @@ class MPCTrajTrack(Node):
             control_out, state_horizon = self.mpc.solve(
                 state_vector=x0, reference=ref)
         except Exception as e:
-            loginfo(f'{e}')
+            # Catch all errors and raise error, that is
+            # caught be node to proper tear down node.
+            # TODO: Do not logwarn keyboard interrupt while
+            #       in casadi.
+            logwarn(f'{e}')
+            raise KeyboardInterrupt
+
         exec_time = perf_counter() - start
 
         # Publish topics
@@ -143,9 +149,17 @@ class MPCTrajTrack(Node):
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.desired_velocity = max(2.0, state_horizon[3, 1])
         msg.desired_steering_angle = control_out[0][0]
+        msg.desired_acceleration = control_out[1][0]
         self.pub_vehctrl.publish(msg)
 
+        loginfo(
+            f'vx: {state_horizon[3, 1]*3.6:0.1f}km/h '
+            f'- ax: {control_out[1][0]:+0.1f}m/ss '
+            f'| delta_v: {control_out[0][0]*180/3.14159:+0.1f}deg'
+        )
+
     def destroy(self):
+        loginfo('Vehicle control commands are set to zero.')
         self.pub_vehctrl.publish(VehicleControl())
 
     def convert_path_to_trajectory(self,
@@ -190,10 +204,13 @@ class MPCTrajTrack(Node):
             nodes=nodes,
             ref_node=np.array([x_ref, y_ref, s_ref, vx]),
             dt=self.MPC_SAMPLE_TIME_SEC,
-            T=self.MPC_TIME_HORIZON
+            T=self.MPC_TIME_HORIZON,
+            ax_max=self.mpc.MAX_ACCELERATION,
+            ax_min=self.mpc.MAX_DECELERATION,
+            vx_max=self.mpc.MAX_VELOCITY
         )
 
-        return traj[:, 0:2].T, e_y
+        return traj[:, [0, 1, 3]].T, e_y
 
     @staticmethod
     def localize_on_reference(nodes: np.ndarray,
@@ -264,81 +281,85 @@ class MPCTrajTrack(Node):
         return x_ref, y_ref, s_ref, e_y
 
     @staticmethod
-    def calc_time_discrete_traj(nodes, ref_node, dt, T, v= 5):
-        d = ref_node[2]
-        t = 0
-        traj = np.zeros([int(T/dt) + 1, 3])
-        traj[0, 0:2] = ref_node[0:2]
-        i = 1
-        while t < T:
-            ds = v * dt
-            t += dt
-            d += ds
-            traj[i, 0] = np.interp(d, nodes[:, 2], nodes[:, 0])
-            traj[i, 1] = np.interp(d, nodes[:, 2], nodes[:, 1])
-            traj[i, 2] = d
-            i += 1
-        return traj
-
-        # nodes[3, :] = curvature[2:-2]
-
-        # # Calculate velocity profile
-        # nodes[4, :] = np.minimum(np.sqrt(ay_max / nodes[3, :]), vx_max)
-
-        # loginfo(f'vx kappa {nodes[4, :].T}')
-        # nodes[4, 0] = ref_node[3]
-        # for i in range(1, nodes.shape[1]):
-        #     ds = nodes[2, i] - nodes[2, i-1]
-        #     if nodes[4, i] >= nodes[4, i-1]:
-        #         vx = nodes[4, i-1] + np.sqrt(2 * ds * ax_max)
-        #         vx = min(vx, nodes[4, i])
-        #     else:
-        #         vx = nodes[4, i-1] + np.sqrt(2 * ds * ax_max)
-        #         vx = max(vx, nodes[4, i])
-        #     # dvx_max = np.sqrt(2 * ds * ax_max)
-        #     # dvx_min = np.sqrt(2 * ds * -ax_min)
-        #     # nodes[4, i] = max(
-        #     #     min(nodes[4, i-1] + dvx_max, nodes[4, i]),
-        #     #     nodes[4, i-1] - dvx_min
-        #     # )
-        #     nodes[4, i] = vx
-
-        # loginfo(f'vx ax {nodes[4, :].T}')
-        # # loginfo(f'{nodes[2, :]}')
-        # # loginfo(f'{nodes[4, :]}')
-
-        # # for i in range(nodes.shape[1]):
-        # #     pass
-
-        # nodes = nodes.T
+    def calc_time_discrete_traj(nodes: np.ndarray,
+                                ref_node: np.ndarray,
+                                dt: float,
+                                T: float,
+                                ay_max: float = 3,
+                                vx_max: float = 80/3.6,
+                                ax_max: float = 1,
+                                ax_min: float = -3):
         x_ref, y_ref, s_ref, vx_veh = ref_node
 
-        traj = np.zeros([int(T/dt) + 1, 4])  # [x, y, s, v]
+        # Determine maximum velocity based on max. lateral acceleration
+        # and curvature
+        # NOTE: Code was taken from other project, therefore transposed
+        #       nodes.
+        nodes = nodes.T
+        nodes = np.vstack((nodes, np.zeros([2, nodes.shape[1]])))
 
-        traj[0, 0:2] = ref_node[0:2]
-        traj[0, 3] = min(vx_veh, vx_max)
+        x = np.hstack((nodes[0, -2:], nodes[0, :], nodes[0, 0:2]))
+        y = np.hstack((nodes[1, -2:], nodes[1, :], nodes[1, 0:2]))
 
-        t = 0
+        dx = np.gradient(x)
+        ddx = np.gradient(dx)
+        dy = np.gradient(y)
+        ddy = np.gradient(dy)
+
+        num = dx*ddy - ddx*dy
+        denom = dx*dx + dy*dy
+        denom = np.sqrt(denom) ** 3
+        curvature = num / denom + 1e-9
+
+        nodes[3, :] = curvature[2:-2]
+        nodes[4, :] = np.minimum(
+            np.sqrt(ay_max / (np.abs(nodes[3, :]))),
+            vx_max
+        )
+
+        nodes = nodes.T
+
+        # Use `uniformly accelerated motion` to calculate position and
+        # velocity for a time horizon T with step size dt.
         s = s_ref
-        i = 1
-        while t < T:
-            ds = traj[i-1, 3] * dt
+        t = 0
+        traj = np.zeros([int(T/dt) + 1, 4])
+        traj[0, 0:2] = np.array([x_ref, y_ref])
+        traj[0, 3] = max(vx_veh, 0)
+
+        for i in range(1, int(T/dt) + 1):
+            vx_current = traj[i-1, 3]
+            ds = vx_current * dt
             t += dt
             s += ds
             traj[i, 0] = np.interp(s, nodes[:, 2], nodes[:, 0])
             traj[i, 1] = np.interp(s, nodes[:, 2], nodes[:, 1])
             traj[i, 2] = s - s_ref
-            # traj[i, 3] = np.interp(s, nodes[:, 2], nodes[:, 4])
-            i += 1
+
+            # Limit velocity of next step to max and min acceleration.
+            # NOTE: max. a_y is no longer guaranteed! Here, a much more
+            # sufficticated approach is needed.
+            vx_next = np.interp(s, nodes[:, 2], nodes[:, 4])
+            if vx_next >= vx_current:
+                vx_next = min(vx_current + np.sqrt(2 * ds * ax_max), vx_next)
+            else:
+                vx_next = max(
+                    vx_current - np.sqrt(2 * ds * np.abs(ax_min)),
+                    vx_next
+                )
+
+            traj[i, 3] = vx_next
 
         return traj
-        # loginfo(f'{traj.shape}')
-        # loginfo(f'{traj[:, 3]}')
-        # return traj
 
 
 class KinematicMPCTracking:
     """A CasADi based MPC for trajectory tracking."""
+
+    MAX_DECELERATION = -3
+    MAX_ACCELERATION = 2
+    MAX_VELOCITY = 50/3.6
+    MAX_STEERING_ANGLE = 50/180*3.14159
 
     def __init__(self, step_time: float = 0.1,
                  time_horizon: float = 2.0) -> None:
@@ -399,7 +420,7 @@ class KinematicMPCTracking:
 
         # Initialize parameter
         x0 = opti.parameter(x.size)
-        ref = opti.parameter(2, self.N_hor+1)
+        ref = opti.parameter(3, self.N_hor+1)
 
         # Build iteration over time horizon
         for k in range(self.N_hor):
@@ -410,27 +431,28 @@ class KinematicMPCTracking:
         # Readability improvement, maybe for people who don't know the code?
         delta_v, ax = U[0, :], U[1, :]
         pos_x, pos_y, vx = X[0, :], X[1, :], X[3, :]
-        pos_x_ref, pos_y_ref = ref[0, :], ref[1, :]
-
-        # L = 2.928
+        pos_x_ref, pos_y_ref, vx_ref = ref[0, :], ref[1, :], ref[2, :]
 
         # Constraints
-        delta_v_max = np.deg2rad(50)
-        opti.subject_to(opti.bounded(-delta_v_max, delta_v, delta_v_max))
-        opti.subject_to(opti.bounded(-7.0, ax, 3.0))
-        # opti.subject_to(cs.fabs(X[4, :]) <= 2.5)
+        # opti.subject_to(opti.bounded(
+        #     0, vx, self.MAX_VELOCITY)
+        # )  # Leads to no possible solution, dont know why yet
+        opti.subject_to(opti.bounded(
+            self.MAX_DECELERATION, ax, self.MAX_ACCELERATION)
+        )
+        opti.subject_to(opti.bounded(
+            -self.MAX_STEERING_ANGLE, delta_v, self.MAX_STEERING_ANGLE)
+        )
 
         # Cost function
         Q = np.diag([10, 10, 0, 100, 0, 0])
-        R = np.diag([1000, 1])
+        R = np.diag([1000, 100])
         # P = np.diag([1000, 1000])
-
-        V_MAX = 6
 
         opti.minimize(
             cs.sumsqr(pos_x - pos_x_ref) * Q[0, 0] +
             cs.sumsqr(pos_y - pos_y_ref) * Q[1, 1] +
-            cs.sumsqr(vx - V_MAX) * Q[3, 3] +
+            cs.sumsqr(vx - vx_ref) * Q[3, 3] +
             cs.sumsqr(delta_v) * R[0, 0] +
             cs.sumsqr(ax) * R[1, 1]
         )

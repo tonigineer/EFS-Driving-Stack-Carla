@@ -22,8 +22,8 @@ class Planner(Node):
     REFERENCE_TIME_LENGTH_SEC = 7.5
     MIN_REFERENCE_LENGHT = 50/3.6 * 5  # NOTE: testing, 50kph with 5s time horizon
 
-    MIN_NUM_WP_IN_ROUTE = 200
-    MAX_NUM_WP_REMAIN_REPLANNING = 50
+    MIN_NUM_WP_IN_ROUTE = 400
+    MAX_NUM_WP_REMAIN_REPLANNING = 200
 
     odometry = None
     route = None
@@ -31,6 +31,7 @@ class Planner(Node):
     reference_indices = None
 
     _last_idx = 0
+    start = None
 
     def __init__(self):
         super().__init__('carla_efs_planner')
@@ -134,9 +135,10 @@ class Planner(Node):
             )
             return None
 
-        # Replanning when approaching and of route
+        # Replanning when approaching and of route and on straight
         if self._last_idx + self.MAX_NUM_WP_REMAIN_REPLANNING >= self.nodes.shape[0]:
-            self.calculate_route()
+            if abs(self.actor.get_control().steer) < 0.05:
+                self.calculate_route()
 
         ego_pos = np.array([
             [self.odometry.pose.pose.position.x,
@@ -156,6 +158,7 @@ class Planner(Node):
             self.REFERENCE_TIME_LENGTH_SEC*self.odometry.twist.twist.linear.x,
             self.MIN_REFERENCE_LENGHT
         )
+
         while s <= reference_length:
             idx += 1
             dx = self.nodes[idx, 0] - self.nodes[idx-1, 0]
@@ -174,8 +177,11 @@ class Planner(Node):
         """
         loginfo(f'Global route planner ...')
 
+        remaining_route = self.route[self._last_idx:] if self.route else []
+
         while True:
-            self.start = self.actor.get_location()
+            if self.start is None:
+                self.start = self.actor.get_location()
             self.goal = choice(
                 self.world.get_map().get_spawn_points()
             ).location
@@ -187,10 +193,13 @@ class Planner(Node):
                 self.goal
             )
 
+            self.route = remaining_route + self.route
+
             # NOTE: Selecting a fitting goal right at beginning would avoid
             # running the planner multiple times. Because the planner does not
             # take much time, this solution is okay.
             if len(self.route) > self.MIN_NUM_WP_IN_ROUTE:
+                self.start = self.goal
                 break
 
         loginfo(

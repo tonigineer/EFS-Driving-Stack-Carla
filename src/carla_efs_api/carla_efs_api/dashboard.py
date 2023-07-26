@@ -92,8 +92,8 @@ class Dashboard(Node):
     def create_dashboard(self):
         loginfo('Dashboard started')
 
-        width = 1280
-        height = 720
+        width = 1920
+        height = 1080
 
         hud = HUD(
             actor=self.actor, world=self.world,
