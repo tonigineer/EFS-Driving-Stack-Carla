@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from random import choice
 
 import rclpy
 from rclpy.node import Node
@@ -21,10 +22,15 @@ class Planner(Node):
     REFERENCE_TIME_LENGTH_SEC = 5
     MIN_REFERENCE_LENGHT = 10
 
+    MIN_NUM_WP_IN_ROUTE = 200
+    MAX_NUM_WP_REMAIN_REPLANNING = 50
+
     odometry = None
     route = None
     nodes = None
     reference_indices = None
+
+    _last_idx = 0
 
     def __init__(self):
         super().__init__('carla_efs_planner')
@@ -41,10 +47,7 @@ class Planner(Node):
             pattern=[self.role_name]
         )
 
-        self.start = self.actor.get_location()
-        self.goal = self.world.get_map().get_spawn_points()[0].location
-        loginfo(f'{self.start} {self.goal}')
-
+        # Initial route
         self.calculate_route()
 
     def configure_subscriber(self) -> None:
@@ -71,7 +74,6 @@ class Planner(Node):
         )
 
     def callback_route(self) -> None:
-
         if self.nodes is None:
             logwarn('Route not calculated yet.')
             return
@@ -132,6 +134,10 @@ class Planner(Node):
             )
             return None
 
+        # Replanning when approaching and of route
+        if self._last_idx + self.MAX_NUM_WP_REMAIN_REPLANNING >= self.nodes.shape[0]:
+            self.calculate_route()
+
         ego_pos = np.array([
             [self.odometry.pose.pose.position.x,
              -self.odometry.pose.pose.position.y]
@@ -142,6 +148,7 @@ class Planner(Node):
 
         # Make sure to start reference behind current position
         idx -= min(idx, 3)
+        self._last_idx = idx
 
         s = 0
         self.reference_indices = [idx]
@@ -166,11 +173,26 @@ class Planner(Node):
         main functionality can be salvaged :)
         """
         loginfo(f'Global route planner ...')
-        grp = GlobalRoutePlanner(self.world.get_map(), sampling_resolution=1)
-        self.route = grp.trace_route(
-            self.start,
-            self.goal
-        )
+
+        while True:
+            self.start = self.actor.get_location()
+            self.goal = choice(
+                self.world.get_map().get_spawn_points()
+            ).location
+            loginfo(f'{self.start} {self.goal}')
+
+            grp = GlobalRoutePlanner(self.world.get_map(), sampling_resolution=1)
+            self.route = grp.trace_route(
+                self.start,
+                self.goal
+            )
+
+            # NOTE: Selecting a fitting goal right at beginning would avoid
+            # running the planner multiple times. Because the planner does not
+            # take much time, this solution is okay.
+            if len(self.route) > self.MIN_NUM_WP_IN_ROUTE:
+                break
+
         loginfo(
             f'▹ Calculated route contains {len(self.route)} waypoints'
         )
@@ -180,6 +202,8 @@ class Planner(Node):
         # Output spawnpoint of route for respawning, for random spawn points
         os.system(f'echo "{self.route[0][0].transform}" '
                   f'> ./log/PLANNER_SPAWN_POINT_{self.role_name}')
+
+        self.callback_route()
 
     def destroy(self):
         pass
