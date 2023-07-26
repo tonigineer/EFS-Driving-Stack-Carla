@@ -12,7 +12,9 @@ from carla_efs_api import CarlaAPI
 from carla_efs_api.dashboard_standalone import DashboardStandalone, HUD
 from carla_efs_api.ros_logging import loginfo
 
-from carla_efs_messages.msg import VehicleControl, StatusMPC
+from carla_efs_messages.msg import (
+    VehicleControl, ControllerStatus, ControllerHorizon
+)
 
 
 class Dashboard(Node):
@@ -64,9 +66,9 @@ class Dashboard(Node):
             self.callback_veh_ctrl, 10
         )
 
-        self.sub_status_mpc = self.create_subscription(
-            StatusMPC, f'/carla/{self.role_name}/status_mpc',
-            self.callback_status_mpc, 10
+        self.sub_ctrl_status = self.create_subscription(
+            ControllerStatus, f'/carla/{self.role_name}/controller/status',
+            self.callback_ctrl_status, 10
         )
 
     def callback_odometry(self, msg):
@@ -78,8 +80,8 @@ class Dashboard(Node):
     def callback_gnss(self, msg):
         self.sensor_data['gnss'] = msg
 
-    def callback_status_mpc(self, msg):
-        self.sensor_data['status_mpc'] = msg
+    def callback_ctrl_status(self, msg):
+        self.sensor_data['ctrl_status'] = msg
 
     def callback_veh_ctrl(self, msg):
         self.sensor_data['veh_ctrl'] = msg

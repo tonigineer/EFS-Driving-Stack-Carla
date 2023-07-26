@@ -2,6 +2,7 @@ import numpy as np
 import casadi as cs
 import casadi.tools as ct
 from time import perf_counter
+from typing import Tuple
 
 import rclpy
 from rclpy.node import Node
@@ -10,8 +11,10 @@ from nav_msgs.msg import Path, Odometry
 from transforms3d.euler import quat2euler
 
 from carla_efs_api import CarlaAPI
-from carla_efs_api.ros_logging import loginfo
-from carla_efs_messages.msg import VehicleControl, StatusMPC
+from carla_efs_api.ros_logging import loginfo, logwarn
+from carla_efs_messages.msg import (
+    VehicleControl, ControllerStatus, ControllerHorizon
+)
 
 
 x = ct.struct_symMX(['pos_x', 'pos_y', 'psi', 'vx', 'vy', 'psip'])
@@ -52,11 +55,20 @@ class MPCTrajTrack(Node):
 
     def configure_publisher(self):
         self.pub_vehctrl = self.create_publisher(
-            VehicleControl, f'/carla/{self.role_name}/vehicle_control', 10
+            VehicleControl, f'/carla/{self.role_name}/vehicle_control',
+            10
         )
 
-        self.pub_status_mpc = self.create_publisher(
-            StatusMPC, f'/carla/{self.role_name}/status_mpc', 10
+        self.pub_ctrl_status = self.create_publisher(
+            ControllerStatus,
+            f'/carla/{self.role_name}/controller/status',
+            10
+        )
+
+        self.pub_ctrl_horizon = self.create_publisher(
+            ControllerHorizon,
+            f'/carla/{self.role_name}/controller/horizon',
+            10
         )
 
     def configure_subscriber(self):
@@ -95,15 +107,16 @@ class MPCTrajTrack(Node):
         ])
 
     def callback_controller(self):
-        loginfo('mpc update')
-
         x0 = self.state
         ref = self.reference[0:self.mpc.N_hor+1, :].T
 
-        ref, ey = self.create_time_discrete_traj(
+        ref, ey = self.convert_path_to_trajectory(
             nodes=ref,
             state=x0,
         )
+
+        if ref is None:
+            return
 
         start = perf_counter()
         try:
@@ -111,29 +124,92 @@ class MPCTrajTrack(Node):
                 state_vector=x0, reference=ref)
         except Exception as e:
             loginfo(f'{e}')
+        exec_time = perf_counter() - start
 
-        # Status of MPC
-        msg = StatusMPC()
+        # Publish topics
+        msg = ControllerStatus()
         msg.lateral_deviation = float(ey)
-        msg.execution_time = perf_counter() - start
-        self.pub_status_mpc.publish(msg)
+        msg.execution_time = exec_time
+        self.pub_ctrl_status.publish(msg)
 
-        # loginfo(f'{control_out}')
+        msg = ControllerHorizon()
+        msg.x_position = state_horizon[0, :].tolist()
+        msg.y_position = state_horizon[1, :].tolist()
+        msg.vx_target = state_horizon[3, :].tolist()
+        self.pub_ctrl_horizon.publish(msg)
 
         msg = VehicleControl()
         msg.header.frame_id = self.role_name
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.desired_velocity = state_horizon[3, 1]
+        msg.desired_velocity = max(2.0, state_horizon[3, 1])
         msg.desired_steering_angle = control_out[0][0]
         self.pub_vehctrl.publish(msg)
 
     def destroy(self):
         self.pub_vehctrl.publish(VehicleControl())
 
-    # Time discrete reference
-    # TODO: Dedicated class
+    def convert_path_to_trajectory(self,
+                                   nodes: np.ndarray,
+                                   state: np.ndarray
+                                   ) -> Tuple[np.ndarray, float]:
+        """Convert the reference path to a time discrete trajectory for MPC.
+
+        The time discrete trajectory begins on the point, where the vehicle
+        is localized. The velocity of the trajectory is based on a maximum
+        velocity and lateral acceleration.
+        """
+        _, idc = np.unique(nodes, axis=1, return_index=True)
+
+        if len(idc) == 1:
+            loginfo(f'No reference received yet. MPC has to wait ...')
+            return None, 0
+
+        # Create array with points of path and their cumulative distance
+        nodes = self.reference[sorted(idc), 0:2]
+        position = state[0:2, 0].T
+        vx = state[3, 0]
+
+        s = np.zeros([nodes.shape[0], 1])
+        d = 0
+        for i in range(1, nodes.shape[0]):
+            dx = nodes[i, 0]-nodes[i-1, 0]
+            dy = nodes[i, 1]-nodes[i-1, 1]
+            d += np.sqrt(dx*dx + dy*dy)
+            s[i] = d
+
+        nodes = np.hstack([nodes, s])
+
+        # Localize exactly on the reference path with lateral deviation
+        (x_ref, y_ref, s_ref, e_y) = self.localize_on_reference(
+            nodes, position
+        )
+
+        # Create a time discrete trajectory from localized position for
+        # the complete time horizon of the MPC
+        traj = self.calc_time_discrete_traj(
+            nodes=nodes,
+            ref_node=np.array([x_ref, y_ref, s_ref, vx]),
+            dt=self.MPC_SAMPLE_TIME_SEC,
+            T=self.MPC_TIME_HORIZON
+        )
+
+        return traj[:, 0:2].T, e_y
+
     @staticmethod
-    def localize_on_reference(nodes, position, nrn=5) -> float:
+    def localize_on_reference(nodes: np.ndarray,
+                              position: np.ndarray,
+                              nrn: int = 5) -> Tuple[float]:
+        """Return distance where vehicle is localized on reference.
+
+        Definition: The point on the reference path, where a perpendicular
+        vector on the tangent goes through the vehicle's center of gravity,
+        is the point, where the vehicle is locallized on the trajectory.
+
+        The length of this vector is also the lateral deviation.
+
+        Returns `tuple` with reference `x` and `y-position`, reference
+        `distance` and `lateral deviation`
+        """
         x = nodes[:, 0]
         y = nodes[:, 1]
         s = nodes[:, 2]
@@ -176,14 +252,23 @@ class MPCTrajTrack(Node):
         else:
             k = np.argmin(pc_diffs)
 
-        return s[k] + pc_diffs[k, 0]
+        s_ref = s[k] + pc_diffs[k, 0]
+
+        x_ref = np.interp(s_ref, nodes[:, 2], nodes[:, 0])
+        y_ref = np.interp(s_ref, nodes[:, 2], nodes[:, 1])
+
+        e_y = np.linalg.norm(
+            np.array([x_ref-position[0], y_ref-position[1]])
+        )
+
+        return x_ref, y_ref, s_ref, e_y
 
     @staticmethod
-    def make_time_discrete(nodes, ref, v, dt, T):
-        d = ref[2]
+    def calc_time_discrete_traj(nodes, ref_node, dt, T, v= 5):
+        d = ref_node[2]
         t = 0
         traj = np.zeros([int(T/dt) + 1, 3])
-        traj[0, 0:2] = ref[0:2]
+        traj[0, 0:2] = ref_node[0:2]
         i = 1
         while t < T:
             ds = v * dt
@@ -195,44 +280,61 @@ class MPCTrajTrack(Node):
             i += 1
         return traj
 
-    def create_time_discrete_traj(self, nodes, state):
-        _, idc = np.unique(nodes, axis=1, return_index=True)
+        # nodes[3, :] = curvature[2:-2]
 
-        # No reference received yet, just zeros
-        if len(idc) == 1:
-            loginfo(f'Time discrete trajectory cannot be calculated')
-            return nodes, 0
+        # # Calculate velocity profile
+        # nodes[4, :] = np.minimum(np.sqrt(ay_max / nodes[3, :]), vx_max)
 
-        nodes = self.reference[sorted(idc), 0:2]
-        position = state[0:2, 0].T
-        vx = state[3, 0]
+        # loginfo(f'vx kappa {nodes[4, :].T}')
+        # nodes[4, 0] = ref_node[3]
+        # for i in range(1, nodes.shape[1]):
+        #     ds = nodes[2, i] - nodes[2, i-1]
+        #     if nodes[4, i] >= nodes[4, i-1]:
+        #         vx = nodes[4, i-1] + np.sqrt(2 * ds * ax_max)
+        #         vx = min(vx, nodes[4, i])
+        #     else:
+        #         vx = nodes[4, i-1] + np.sqrt(2 * ds * ax_max)
+        #         vx = max(vx, nodes[4, i])
+        #     # dvx_max = np.sqrt(2 * ds * ax_max)
+        #     # dvx_min = np.sqrt(2 * ds * -ax_min)
+        #     # nodes[4, i] = max(
+        #     #     min(nodes[4, i-1] + dvx_max, nodes[4, i]),
+        #     #     nodes[4, i-1] - dvx_min
+        #     # )
+        #     nodes[4, i] = vx
 
-        s = np.zeros([nodes.shape[0], 1])
-        d = 0
-        for i in range(1, nodes.shape[0]):
-            dx = nodes[i, 0]-nodes[i-1, 0]
-            dy = nodes[i, 1]-nodes[i-1, 1]
-            d += np.sqrt(dx*dx + dy*dy)
-            s[i] = d
+        # loginfo(f'vx ax {nodes[4, :].T}')
+        # # loginfo(f'{nodes[2, :]}')
+        # # loginfo(f'{nodes[4, :]}')
 
-        nodes = np.hstack([nodes, s])
+        # # for i in range(nodes.shape[1]):
+        # #     pass
 
-        s_ref = self.localize_on_reference(nodes, position)
+        # nodes = nodes.T
+        x_ref, y_ref, s_ref, vx_veh = ref_node
 
-        x_ref = np.interp(s_ref, nodes[:, 2], nodes[:, 0])
-        y_ref = np.interp(s_ref, nodes[:, 2], nodes[:, 1])
+        traj = np.zeros([int(T/dt) + 1, 4])  # [x, y, s, v]
 
-        e_y = np.linalg.norm(
-            np.array([x_ref-position[0], y_ref-position[1]])
-        )
+        traj[0, 0:2] = ref_node[0:2]
+        traj[0, 3] = min(vx_veh, vx_max)
 
-        traj = self.make_time_discrete(
-            nodes,
-            np.array([x_ref, y_ref, s_ref]),
-            v=vx, dt=self.MPC_SAMPLE_TIME_SEC, T=self.MPC_TIME_HORIZON
-        )
+        t = 0
+        s = s_ref
+        i = 1
+        while t < T:
+            ds = traj[i-1, 3] * dt
+            t += dt
+            s += ds
+            traj[i, 0] = np.interp(s, nodes[:, 2], nodes[:, 0])
+            traj[i, 1] = np.interp(s, nodes[:, 2], nodes[:, 1])
+            traj[i, 2] = s - s_ref
+            # traj[i, 3] = np.interp(s, nodes[:, 2], nodes[:, 4])
+            i += 1
 
-        return traj[:, 0:2].T, e_y
+        return traj
+        # loginfo(f'{traj.shape}')
+        # loginfo(f'{traj[:, 3]}')
+        # return traj
 
 
 class KinematicMPCTracking:

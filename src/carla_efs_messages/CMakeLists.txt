@@ -12,7 +12,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  msg/StatusMPC.msg
+  msg/ControllerHorizon.msg
+  msg/ControllerStatus.msg
   msg/VehicleControl.msg
   msg/VehiclePhysics.msg
   msg/VehicleState.msg

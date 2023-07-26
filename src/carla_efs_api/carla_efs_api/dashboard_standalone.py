@@ -337,18 +337,17 @@ class HUD:
                     f" {data['imu'].angular_velocity.y:+2.1f}," + \
                     f" {data['imu'].angular_velocity.z:+2.1f})"
 
-            if 'status_mpc' in data.keys():
-                exec_time = f"{data['status_mpc'].execution_time*1000:0.0f} ms"
-                lat_dev = f"{data['status_mpc'].lateral_deviation:0.2f} m"
+            if 'ctrl_status' in data.keys():
+                exec_time = f"{data['ctrl_status'].execution_time*1000:0.0f} ms"
+                lat_dev = f"{data['ctrl_status'].lateral_deviation:0.2f} m"
                 v_diff = \
-                    f"{data['status_mpc'].velocity_difference*3.6:0.1f} km/h"
+                    f"{data['ctrl_status'].velocity_difference*3.6:0.1f} km/h"
 
             if 'veh_ctrl' in data.keys():
                 mpc_ax = f"{data['veh_ctrl'].desired_acceleration:0.1f} m/ss"
                 mpc_vx = f"{data['veh_ctrl'].desired_velocity*3.6:0.0f} km/h"
                 mpc_deltav = \
                     f"{data['veh_ctrl'].desired_steering_angle:0.3f} rad"
-
 
         # Read from Carla directly
         t = self.actor.get_transform()
